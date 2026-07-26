@@ -12,10 +12,23 @@ public sealed class SessionService(AppDbContext db)
         var count = Math.Clamp(requestedCount, 3, 15);
         var userSkills = await db.UserSkills.Where(x => x.UserId == userId && x.IsActive).Select(x => x.SkillId).ToListAsync(ct);
         var technologies = await db.UserTechnologies.Where(x => x.UserId == userId).Select(x => x.TechnologyId).ToListAsync(ct);
-        var recentIds = await db.SessionQuestions
-            .Where(x => x.Session.UserId == userId && x.Session.StartedAt > DateTimeOffset.UtcNow.AddDays(-7))
-            .Select(x => x.QuestionId)
-            .ToListAsync(ct);
+        var recentCutoff = DateTimeOffset.UtcNow.AddDays(-7);
+        var recentQuestions = db.SessionQuestions
+            .Where(x => x.Session.UserId == userId && x.Session.StartedAt > recentCutoff)
+            .Select(x => new { x.QuestionId, x.Session.StartedAt });
+        List<Guid> recentIds;
+        if (db.Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+        {
+            var userQuestions = await db.SessionQuestions
+                .Where(x => x.Session.UserId == userId)
+                .Select(x => new { x.QuestionId, x.Session.StartedAt })
+                .ToListAsync(ct);
+            recentIds = userQuestions.Where(x => x.StartedAt > recentCutoff).Select(x => x.QuestionId).ToList();
+        }
+        else
+        {
+            recentIds = await recentQuestions.Select(x => x.QuestionId).ToListAsync(ct);
+        }
 
         var query = db.Questions.AsNoTracking()
             .Where(x => userSkills.Count == 0 || userSkills.Contains(x.SkillId))

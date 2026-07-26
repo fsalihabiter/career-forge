@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-26
 - Aktif faz: Faz 1 — Çalışan dikey dilimi güvenceye alma
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-103 — Kimlik ve yetkilendirme integration testleri`
-- Son tamamlanan iş: `CF-102 — API integration test altyapısı`
+- Sıradaki iş: `CF-104 — Oturum akışı integration testleri`
+- Son tamamlanan iş: `CF-103 — Kimlik ve yetkilendirme integration testleri`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -19,7 +19,7 @@ işlenir.
 | Faz | Tamamlandı | Toplam | Durum |
 | --- | ---: | ---: | --- |
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
-| 1. Dikey dilimi güvenceye alma | 3 | 7 | Devam ediyor |
+| 1. Dikey dilimi güvenceye alma | 4 | 7 | Devam ediyor |
 | 2. Öğrenme ve içerik MVP'si | 0 | 8 | Bekliyor |
 | 3. İlerleme ve tekrar | 0 | 6 | Bekliyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
@@ -46,8 +46,8 @@ işlenir.
 | CF-100 | Tamamlandı | Docker build context ve port düzeltmesi | CF-001–006 | Compose tanımları düzeltildi |
 | CF-101 | Tamamlandı | Docker Compose uçtan uca doğrulama | CF-100 | Tüm servisler build olur; health ve web erişilir; temel kullanıcı akışı smoke test edilir |
 | CF-102 | Tamamlandı | API integration test altyapısı | CF-101 | WebApplicationFactory/test DB ile kritik akışlar otomatik çalışır |
-| CF-103 | Sıradaki | Kimlik ve yetkilendirme integration testleri | CF-102 | Kayıt/giriş, 401 ve kullanıcı veri izolasyonu test edilir |
-| CF-104 | Bekliyor | Oturum akışı integration testleri | CF-102 | Başlat, cevapla, tamamla ve sonuç akışı test edilir |
+| CF-103 | Tamamlandı | Kimlik ve yetkilendirme integration testleri | CF-102 | Kayıt/giriş, 401 ve kullanıcı veri izolasyonu test edilir |
+| CF-104 | Sıradaki | Oturum akışı integration testleri | CF-102 | Başlat, cevapla, tamamla ve sonuç akışı test edilir |
 | CF-105 | Bekliyor | Frontend test altyapısı | CF-101 | Vitest + React Testing Library yapılandırılır |
 | CF-106 | Bekliyor | Frontend kritik akış testleri | CF-105 | Onboarding ve soru çözme davranışı test edilir |
 
@@ -173,6 +173,25 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
   `SQLitePCLRaw.bundle_e_sqlite3` sürümü sabitlenerek giderildi; vulnerability
   taraması temiz geçti.
 - Release test paketinin 9/9 testi başarılıdır.
+
+### 2026-07-26 — CF-103 başlatıldı
+
+- Kayıt/giriş, korunan endpoint ve kullanıcılar arası veri izolasyonu için HTTP
+  seviyesinde integration testlerinin eklenmesine başlandı.
+
+### 2026-07-26 — CF-103 tamamlandı
+
+- Kayıt sonrası token üretimi ve aynı kimlik bilgileriyle giriş akışı otomatik
+  test edildi.
+- Korunan profil endpoint'inin anonim isteklere `401 Unauthorized` döndürdüğü
+  doğrulandı.
+- Bir kullanıcının başka kullanıcıya ait tanılama oturumunu okuyamadığı ve API'nin
+  kaynak varlığını sızdırmadan `404 Not Found` döndürdüğü doğrulandı.
+- SQLite'ın `DateTimeOffset` karşılaştırma kısıtı için yalnızca SQLite test
+  sağlayıcısında yakın-geçmiş filtresi bellekte uygulanırken PostgreSQL üretim
+  sorgusu sunucu tarafında bırakıldı.
+- Release test paketinin 12/12 testi ve güncel container üzerinde PostgreSQL
+  oturum oluşturma smoke testi başarılıdır.
 
 ## Karar günlüğü
 
