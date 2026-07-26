@@ -82,6 +82,24 @@ public sealed class UserSkill
     public bool IsActive { get; set; } = true;
     public Skill Skill { get; set; } = null!;
     public Technology? Technology { get; set; }
+    public ICollection<SkillAssessment> Assessments { get; set; } = [];
+}
+
+public sealed class SkillAssessment
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public Guid UserSkillId { get; set; }
+    public Guid SessionId { get; set; }
+    public decimal SessionScore { get; set; }
+    public decimal RollingScore { get; set; }
+    public ProficiencyLevel MeasuredLevel { get; set; }
+    public decimal ConfidenceScore { get; set; }
+    public int EvidenceCount { get; set; }
+    public int TotalEvidenceCount { get; set; }
+    public DateTimeOffset AssessedAt { get; set; } = DateTimeOffset.UtcNow;
+    public UserSkill UserSkill { get; set; } = null!;
+    public InterviewSession Session { get; set; } = null!;
 }
 
 public sealed class UserSpecialization

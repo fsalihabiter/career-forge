@@ -403,6 +403,39 @@ public static class ProfileEndpoints
                     x.SelfAssessedLevel, x.MeasuredLevel, x.TargetLevel, x.ConfidenceScore, x.LastAssessedAt
                 }).ToListAsync(ct));
         });
+        me.MapGet("/skills/{userSkillId:guid}/history", async (
+            Guid userSkillId,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            CancellationToken ct) =>
+        {
+            var userId = principal.UserId();
+            var userSkill = await db.UserSkills.AsNoTracking()
+                .Include(x => x.Skill)
+                .Include(x => x.Technology)
+                .SingleOrDefaultAsync(x => x.Id == userSkillId && x.UserId == userId, ct);
+            if (userSkill is null) return Results.NotFound();
+
+            var assessments = await db.SkillAssessments.AsNoTracking()
+                .Where(x => x.UserSkillId == userSkillId && x.UserId == userId)
+                .ToArrayAsync(ct);
+            var history = assessments.OrderBy(x => x.AssessedAt).Select(x => new SkillProgressPoint(
+                    x.SessionId,
+                    x.SessionScore,
+                    x.RollingScore,
+                    x.MeasuredLevel.ToString().ToLowerInvariant(),
+                    x.ConfidenceScore,
+                    x.EvidenceCount,
+                    x.TotalEvidenceCount,
+                    x.AssessedAt))
+                .ToArray();
+            return Results.Ok(new SkillProgressHistoryResponse(
+                userSkill.Id,
+                userSkill.SkillId,
+                userSkill.Skill.Name,
+                userSkill.Technology == null ? null : userSkill.Technology.Name,
+                history));
+        });
         api.MapPost("/learning-paths/generate", async (ClaimsPrincipal principal, PlanningService planner, CancellationToken ct) =>
             Results.Ok(await planner.GenerateAsync(principal.UserId(), ct))).RequireAuthorization();
         api.MapGet("/learning-paths/current", async (ClaimsPrincipal principal, AppDbContext db, CancellationToken ct) =>

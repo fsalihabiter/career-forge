@@ -85,6 +85,23 @@ public sealed record LessonProgressResponse(
     bool Completed,
     DateTimeOffset UpdatedAt);
 
+public sealed record SkillProgressPoint(
+    Guid SessionId,
+    decimal SessionScore,
+    decimal RollingScore,
+    string MeasuredLevel,
+    decimal ConfidenceScore,
+    int EvidenceCount,
+    int TotalEvidenceCount,
+    DateTimeOffset AssessedAt);
+
+public sealed record SkillProgressHistoryResponse(
+    Guid UserSkillId,
+    Guid SkillId,
+    string Skill,
+    string? Technology,
+    SkillProgressPoint[] History);
+
 public sealed record PatternSummary(
     string StableId,
     int Version,

@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-26
 - Aktif faz: Faz 3 — İlerleme ve tekrar
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-302 — Beceri bazlı gelişim hesabı`
-- Son tamamlanan iş: `CF-301 — Ders ilerleme kaydı`
+- Sıradaki iş: `CF-303 — Tekrar listesi`
+- Son tamamlanan iş: `CF-302 — Beceri bazlı gelişim hesabı`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -21,7 +21,7 @@ işlenir.
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
 | 2. Öğrenme ve içerik MVP'si | 8 | 8 | Tamamlandı |
-| 3. İlerleme ve tekrar | 1 | 6 | Devam ediyor |
+| 3. İlerleme ve tekrar | 2 | 6 | Devam ediyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
 | 6. Gelişmiş deneyim | 0 | 6 | Bekliyor |
@@ -69,8 +69,8 @@ işlenir.
 | ID | Durum | İş | Bağımlılık | Kabul özeti |
 | --- | --- | --- | --- | --- |
 | CF-301 | Tamamlandı | Ders ilerleme kaydı | CF-204 | Kullanıcı kaldığı yerden farklı cihazda devam eder |
-| CF-302 | Sıradaki | Beceri bazlı gelişim hesabı | CF-207 | Ölçülen seviye ve güven skoru geçmişi korunur |
-| CF-303 | Bekliyor | Tekrar listesi | CF-302 | Soru ekleme, çıkarma ve filtreleme yapılır |
+| CF-302 | Tamamlandı | Beceri bazlı gelişim hesabı | CF-207 | Ölçülen seviye ve güven skoru geçmişi korunur |
+| CF-303 | Sıradaki | Tekrar listesi | CF-302 | Soru ekleme, çıkarma ve filtreleme yapılır |
 | CF-304 | Bekliyor | Spaced repetition planı | CF-303 | Sonraki tekrar tarihi hesaplanır |
 | CF-305 | Bekliyor | Kullanıcı dashboard'u | CF-301–304 | Sıradaki çalışma, zayıf alan ve son sonuç görünür |
 | CF-306 | Bekliyor | Erişilebilirlik ve responsive kabul turu | CF-305 | Temel akışlarda klavye, mobil ve taşma sorunları giderilir |
@@ -445,6 +445,35 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
 - Gerçek PostgreSQL smoke testinde ilerleme sıfırdan başlatıldı, bir bölüm kaydedildi
   ve aynı hesapla yeni giriş sonrasında son bölüm ile tamamlanan bölüm aynen geri
   yüklendi.
+
+### 2026-07-26 — CF-302 başlatıldı
+
+- Her tamamlanan oturumun beceri puanı, ölçülen seviyesi ve kanıt güvenini tarihsel
+  bir ölçüm noktası olarak saklama ve güncel gelişimi kümülatif kanıttan hesaplama
+  çalışmasına başlandı.
+
+### 2026-07-26 — CF-302 tamamlandı
+
+- Her oturum ve kullanıcı becerisi için benzersiz değerlendirme noktası; oturum
+  puanı, kümülatif puan, ölçülen seviye, güven, oturum ve toplam kanıt sayılarıyla
+  kalıcı olarak saklanıyor.
+- Güncel beceri puanı tüm oturumlardaki kanıt sayısıyla ağırlıklandırılıyor; ölçülen
+  seviye bu kümülatif puandan, güven ise toplam bağımsız kanıt sayısından üretiliyor.
+- Oturum tamamlama öz puan yerine rubric sistem ölçümünü kullanıyor ve aynı oturum
+  yeniden işlense bile benzersiz tarihçe kaydı sayesinde çoğaltılmıyor.
+- Kullanıcıya ait beceri geçmişini kronolojik ölçüm noktalarıyla döndüren,
+  hesaplar arasında veri sızdırmayan yetkilendirilmiş API endpoint'i eklendi.
+- PostgreSQL migration'ı kullanıcı, oturum ve kullanıcı becerisi ilişkilerini
+  cascade kuralları ve oturum-beceri benzersizlik kısıtıyla oluşturdu.
+- İki oturumun tarihçeyi iki noktaya, toplam kanıtı 1'den 2'ye ve güveni %20'den
+  %40'a taşıması ile başka hesabın geçmişi okuyamaması integration testiyle
+  doğrulandı.
+- Backend testleri 25/25, frontend testleri 4/4 ve production/container build
+  başarılıdır; lint yalnızca önceden bilinen engelleyici olmayan `useEffect`
+  uyarısını üretmektedir.
+- Gerçek PostgreSQL smoke testinde iki tanılama sonrasında geçmiş 2 noktaya ulaştı,
+  kanıt sayıları 1 ve 2, güven değerleri %20 ve %40 olarak döndü ve güncel
+  `UserSkill` seviyesi ile son tarihçe noktası eşleşti.
 
 ## Karar günlüğü
 

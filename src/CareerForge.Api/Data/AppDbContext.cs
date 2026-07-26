@@ -13,6 +13,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Specialization> Specializations => Set<Specialization>();
     public DbSet<SpecializationSkill> SpecializationSkills => Set<SpecializationSkill>();
     public DbSet<UserSkill> UserSkills => Set<UserSkill>();
+    public DbSet<SkillAssessment> SkillAssessments => Set<SkillAssessment>();
     public DbSet<UserTechnology> UserTechnologies => Set<UserTechnology>();
     public DbSet<UserSpecialization> UserSpecializations => Set<UserSpecialization>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
@@ -42,6 +43,24 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.Entity<SpecializationSkill>().HasKey(x => new { x.SpecializationId, x.SkillId });
         modelBuilder.Entity<UserSkill>().HasKey(x => x.Id);
         modelBuilder.Entity<UserSkill>().HasIndex(x => new { x.UserId, x.SkillId, x.TechnologyId }).IsUnique();
+        modelBuilder.Entity<SkillAssessment>()
+            .HasIndex(x => new { x.SessionId, x.UserSkillId })
+            .IsUnique();
+        modelBuilder.Entity<SkillAssessment>()
+            .HasOne(x => x.UserSkill)
+            .WithMany(x => x.Assessments)
+            .HasForeignKey(x => x.UserSkillId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<SkillAssessment>()
+            .HasOne(x => x.Session)
+            .WithMany()
+            .HasForeignKey(x => x.SessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<SkillAssessment>()
+            .HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<UserTechnology>().HasKey(x => new { x.UserId, x.TechnologyId });
         modelBuilder.Entity<UserSpecialization>().HasKey(x => new { x.UserId, x.SpecializationId });
         modelBuilder.Entity<SessionQuestion>().HasKey(x => new { x.SessionId, x.QuestionId });
@@ -78,5 +97,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             .OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<LessonProgress>().Property(x => x.CompletedSectionKeysJson).HasColumnType("jsonb");
         modelBuilder.Entity<UserSkill>().Property(x => x.ConfidenceScore).HasPrecision(5, 2);
+        modelBuilder.Entity<SkillAssessment>().Property(x => x.SessionScore).HasPrecision(5, 2);
+        modelBuilder.Entity<SkillAssessment>().Property(x => x.RollingScore).HasPrecision(5, 2);
+        modelBuilder.Entity<SkillAssessment>().Property(x => x.ConfidenceScore).HasPrecision(5, 2);
     }
 }

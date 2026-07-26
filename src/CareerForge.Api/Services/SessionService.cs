@@ -101,21 +101,44 @@ public sealed class SessionService(AppDbContext db)
 
         foreach (var group in scored.GroupBy(x => x.Question.SkillId))
         {
-            var average = group.Average(x => Evaluation(x).OverallScore);
-            var measured = average switch
-            {
-                < 25 => ProficiencyLevel.Beginner,
-                < 45 => ProficiencyLevel.Basic,
-                < 65 => ProficiencyLevel.Intermediate,
-                < 85 => ProficiencyLevel.Advanced,
-                _ => ProficiencyLevel.Expert
-            };
+            var sessionScore = group.Average(x => Evaluation(x).OverallScore);
             var userSkill = await db.UserSkills.FirstOrDefaultAsync(
                 x => x.UserId == userId && x.SkillId == group.Key, ct);
             if (userSkill is null) continue;
+
+            var history = await db.SkillAssessments
+                .Where(x => x.UserSkillId == userSkill.Id && x.SessionId != session.Id)
+                .ToListAsync(ct);
+            var evidenceCount = group.Count();
+            var previousEvidence = history.Sum(x => x.EvidenceCount);
+            var totalEvidence = previousEvidence + evidenceCount;
+            var rollingScore = (
+                history.Sum(x => (double)x.SessionScore * x.EvidenceCount)
+                + sessionScore * evidenceCount) / totalEvidence;
+            var measured = LevelFor(rollingScore);
+            var confidence = Math.Min(100, totalEvidence * 20);
+
+            var assessment = await db.SkillAssessments.SingleOrDefaultAsync(
+                x => x.SessionId == session.Id && x.UserSkillId == userSkill.Id, ct);
+            assessment ??= new SkillAssessment
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                UserSkillId = userSkill.Id,
+                SessionId = session.Id
+            };
+            if (db.Entry(assessment).State == EntityState.Detached) db.SkillAssessments.Add(assessment);
+            assessment.SessionScore = (decimal)Math.Round(sessionScore, 2);
+            assessment.RollingScore = (decimal)Math.Round(rollingScore, 2);
+            assessment.MeasuredLevel = measured;
+            assessment.ConfidenceScore = confidence;
+            assessment.EvidenceCount = evidenceCount;
+            assessment.TotalEvidenceCount = totalEvidence;
+            assessment.AssessedAt = session.CompletedAt.Value;
+
             userSkill.MeasuredLevel = measured;
-            userSkill.ConfidenceScore = Math.Min(100, group.Count() * 20);
-            userSkill.LastAssessedAt = DateTimeOffset.UtcNow;
+            userSkill.ConfidenceScore = confidence;
+            userSkill.LastAssessedAt = session.CompletedAt;
         }
         await db.SaveChangesAsync(ct);
 
@@ -130,7 +153,7 @@ public sealed class SessionService(AppDbContext db)
                 skill = group.Key,
                 score = Math.Round(group.Average(x => Evaluation(x).OverallScore), 1),
                 confidence = Math.Min(100, group.Count() * 20),
-                level = ScoreLabel(group.Average(x => x.SelfScore!.Value))
+                level = ScoreLabel(group.Average(x => Evaluation(x).OverallScore))
             })
         };
     }
@@ -171,5 +194,14 @@ public sealed class SessionService(AppDbContext db)
     private static string ScoreLabel(double score) => score switch
     {
         < 25 => "beginner", < 45 => "basic", < 65 => "intermediate", < 85 => "advanced", _ => "expert"
+    };
+
+    private static ProficiencyLevel LevelFor(double score) => score switch
+    {
+        < 25 => ProficiencyLevel.Beginner,
+        < 45 => ProficiencyLevel.Basic,
+        < 65 => ProficiencyLevel.Intermediate,
+        < 85 => ProficiencyLevel.Advanced,
+        _ => ProficiencyLevel.Expert
     };
 }
