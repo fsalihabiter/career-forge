@@ -15,6 +15,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<UserSkill> UserSkills => Set<UserSkill>();
     public DbSet<UserTechnology> UserTechnologies => Set<UserTechnology>();
     public DbSet<UserSpecialization> UserSpecializations => Set<UserSpecialization>();
+    public DbSet<Lesson> Lessons => Set<Lesson>();
+    public DbSet<PatternGuide> PatternGuides => Set<PatternGuide>();
+    public DbSet<ContentSection> ContentSections => Set<ContentSection>();
+    public DbSet<Rubric> Rubrics => Set<Rubric>();
+    public DbSet<RubricDimension> RubricDimensions => Set<RubricDimension>();
     public DbSet<Question> Questions => Set<Question>();
     public DbSet<InterviewSession> InterviewSessions => Set<InterviewSession>();
     public DbSet<SessionQuestion> SessionQuestions => Set<SessionQuestion>();
@@ -39,7 +44,25 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.Entity<UserTechnology>().HasKey(x => new { x.UserId, x.TechnologyId });
         modelBuilder.Entity<UserSpecialization>().HasKey(x => new { x.UserId, x.SpecializationId });
         modelBuilder.Entity<SessionQuestion>().HasKey(x => new { x.SessionId, x.QuestionId });
+        modelBuilder.Entity<VersionedContent>()
+            .HasDiscriminator<string>("ContentType")
+            .HasValue<Lesson>("lesson")
+            .HasValue<PatternGuide>("pattern");
+        modelBuilder.Entity<VersionedContent>().HasIndex(x => new { x.StableId, x.Version }).IsUnique();
+        modelBuilder.Entity<VersionedContent>().HasIndex(x => new { x.Slug, x.Version }).IsUnique();
+        modelBuilder.Entity<VersionedContent>().Property(x => x.ObjectivesJson).HasColumnType("jsonb");
+        modelBuilder.Entity<VersionedContent>().Property(x => x.PrerequisitesJson).HasColumnType("jsonb");
+        modelBuilder.Entity<ContentSection>().HasIndex(x => new { x.ContentId, x.Key }).IsUnique();
+        modelBuilder.Entity<ContentSection>().HasIndex(x => new { x.ContentId, x.Order }).IsUnique();
+        modelBuilder.Entity<Rubric>().HasIndex(x => new { x.StableId, x.Version }).IsUnique();
+        modelBuilder.Entity<RubricDimension>().HasIndex(x => new { x.RubricId, x.Key }).IsUnique();
+        modelBuilder.Entity<RubricDimension>().HasIndex(x => new { x.RubricId, x.Order }).IsUnique();
         modelBuilder.Entity<Question>().HasIndex(x => new { x.StableId, x.Version }).IsUnique();
+        modelBuilder.Entity<Question>()
+            .HasOne(x => x.Rubric)
+            .WithMany(x => x.Questions)
+            .HasForeignKey(x => x.RubricId)
+            .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Question>().Property(x => x.ExpectedSignalsJson).HasColumnType("jsonb");
         modelBuilder.Entity<Question>().Property(x => x.RedFlagsJson).HasColumnType("jsonb");
         modelBuilder.Entity<Question>().Property(x => x.RubricJson).HasColumnType("jsonb");

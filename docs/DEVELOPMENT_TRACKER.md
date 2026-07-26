@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-26
 - Aktif faz: Faz 2 — Öğrenme ve içerik MVP'si
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-201 — Versiyonlanabilir içerik şeması`
-- Son tamamlanan iş: `CF-106 — Frontend kritik akış testleri`
+- Sıradaki iş: `CF-202 — Git tabanlı içerik yükleme`
+- Son tamamlanan iş: `CF-201 — Versiyonlanabilir içerik şeması`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -20,7 +20,7 @@ işlenir.
 | --- | ---: | ---: | --- |
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
-| 2. Öğrenme ve içerik MVP'si | 0 | 8 | Bekliyor |
+| 2. Öğrenme ve içerik MVP'si | 1 | 8 | Devam ediyor |
 | 3. İlerleme ve tekrar | 0 | 6 | Bekliyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
@@ -55,8 +55,8 @@ işlenir.
 
 | ID | Durum | İş | Bağımlılık | Kabul özeti |
 | --- | --- | --- | --- | --- |
-| CF-201 | Bekliyor | Versiyonlanabilir içerik şeması | CF-104 | Ders, bölüm, soru, rubric ve pattern modeli tanımlanır |
-| CF-202 | Bekliyor | Git tabanlı içerik yükleme | CF-201 | İçerik koddan ayrılmış dosyalardan doğrulanarak yüklenir |
+| CF-201 | Tamamlandı | Versiyonlanabilir içerik şeması | CF-104 | Ders, bölüm, soru, rubric ve pattern modeli tanımlanır |
+| CF-202 | Sıradaki | Git tabanlı içerik yükleme | CF-201 | İçerik koddan ayrılmış dosyalardan doğrulanarak yüklenir |
 | CF-203 | Bekliyor | Öğrenme rehberi API'si | CF-202 | Teknoloji, ders listesi ve ders detayı endpoint'leri hazırdır |
 | CF-204 | Bekliyor | Öğrenme rehberi arayüzü | CF-203 | Liste ve ders okuma akışı responsive ve erişilebilirdir |
 | CF-205 | Bekliyor | İlk üç örnek ders | CF-202 | Middleware dahil üç tam ders içerir |
@@ -245,6 +245,28 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
 - Frontend component testlerinin 3/3'ü, TypeScript/Vite production build ve
   Oxlint başarılıdır; mevcut `useEffect` uyarısı engelleyici değildir.
 - Faz 1'in yedi işi tamamlandı ve geliştirme sırası Faz 2 içerik şemasına geçti.
+
+### 2026-07-26 — CF-201 başlatıldı
+
+- Ders, pattern, sıralı bölüm, soru yayın durumu ve ağırlıklı rubric için
+  versiyonlanabilir EF Core içerik şemasının tasarımına başlandı.
+
+### 2026-07-26 — CF-201 tamamlandı
+
+- Ders ve pattern içerikleri ortak versiyon, slug, teknoloji, seviye, yayın durumu
+  ve öğrenme metadata'sı taşıyan TPH içerik modeliyle tanımlandı.
+- Markdown ve isteğe bağlı kod örneği taşıyan, içerik başına benzersiz anahtar ve
+  sıra kısıtlarına sahip bölüm modeli eklendi.
+- Rubric ve ağırlıklı rubric boyutları ayrı, versiyonlanabilir modeller hâline
+  getirildi; sorular yayın durumu ve rubric ilişkisi kazandı.
+- Stable ID + version, slug + version, bölüm anahtarı/sırası ve rubric boyutu
+  kısıtları için benzersiz indeksler eklendi.
+- PostgreSQL migration'ı üretildi; mevcut sorular yayınlanmış kabul edilerek
+  ağırlıkları toplam 100 olan varsayılan rubric'e geriye uyumlu biçimde bağlandı.
+- Migration mevcut Docker PostgreSQL veritabanında başarıyla uygulandı ve EF model
+  snapshot'ında bekleyen değişiklik kalmadığı doğrulandı.
+- Seed verisi ilişkisel rubric modelini kullanacak şekilde güncellendi; backend
+  testlerinin 16/16'sı geçti.
 
 ## Karar günlüğü
 

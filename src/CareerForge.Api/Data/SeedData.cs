@@ -61,36 +61,38 @@ public static class SeedData
         AddSpecSkills(db, specBySlug["qa"], skillBySlug, ["testing", "debugging", "delivery"]);
 
         var techBySlug = technologies.ToDictionary(x => x.Slug);
+        var rubric = DefaultRubric();
+        db.Add(rubric);
         var questions = new[]
         {
-            Q("api-idempotency", "Kullanıcı aynı oluşturma isteğini iki kez gönderdiğinde çift kayıt oluşmasını nasıl önlersin?", "Tasarım", ProficiencyLevel.Intermediate, skillBySlug["api-design"], null,
+            Q("api-idempotency", "Kullanıcı aynı oluşturma isteğini iki kez gönderdiğinde çift kayıt oluşmasını nasıl önlersin?", "Tasarım", ProficiencyLevel.Intermediate, skillBySlug["api-design"], null, rubric,
                 "İstemci işlem anahtarı, veritabanı unique constraint'i ve aynı transaction içinde sonuç kaydı kullanırım.",
                 ["Idempotency key", "Unique constraint", "Transaction sınırı"], ["Sadece butonu kapatmak"]),
-            Q("debug-no-log", "Bir API bazen 500 dönüyor ama loglarda hata yok. İlk 15 dakikada hangi kanıtları toplarsın?", "Incident", ProficiencyLevel.Advanced, skillBySlug["debugging"], null,
+            Q("debug-no-log", "Bir API bazen 500 dönüyor ama loglarda hata yok. İlk 15 dakikada hangi kanıtları toplarsın?", "Incident", ProficiencyLevel.Advanced, skillBySlug["debugging"], null, rubric,
                 "Correlation ID ile isteği izler, exception pipeline'ını, deployment farkını ve downstream sürelerini incelerim.",
                 ["Correlation ID", "Downstream süreleri", "Deployment karşılaştırması"], ["Rastgele log açmak"]),
-            Q("system-boundaries", "Yeni bir ürün için mikroservis yerine modüler monolit seçimini nasıl savunursun?", "Sistem tasarımı", ProficiencyLevel.Advanced, skillBySlug["system-design"], null,
+            Q("system-boundaries", "Yeni bir ürün için mikroservis yerine modüler monolit seçimini nasıl savunursun?", "Sistem tasarımı", ProficiencyLevel.Advanced, skillBySlug["system-design"], null, rubric,
                 "Ekip, bağımsız ölçek ve deployment ihtiyacını ölçer; sınırları kod içinde koruyup dağıtık sistem maliyetini ertelerim.",
                 ["Ekip sınırı", "Bağımsız ölçek", "Operasyon maliyeti"], ["Mikroservis her zaman iyidir"]),
-            Q("postgres-index", "Filtreli bir sorgu büyüdükçe yavaşlıyor. PostgreSQL tarafında nasıl incelersin?", "Performans", ProficiencyLevel.Intermediate, skillBySlug["database"], techBySlug["postgresql"],
+            Q("postgres-index", "Filtreli bir sorgu büyüdükçe yavaşlıyor. PostgreSQL tarafında nasıl incelersin?", "Performans", ProficiencyLevel.Intermediate, skillBySlug["database"], techBySlug["postgresql"], rubric,
                 "EXPLAIN ANALYZE, gerçek cardinality, buffer kullanımı ve sorgu desenine uygun bileşik/partial index incelerim.",
                 ["EXPLAIN ANALYZE", "Cardinality", "Index sırası"], ["Her kolona index eklemek"]),
-            Q("react-race", "Filtre hızla değiştiğinde eski HTTP cevabı yeni ekranı eziyor. React'te nasıl önlersin?", "Debug", ProficiencyLevel.Intermediate, skillBySlug["frontend"], techBySlug["react"],
+            Q("react-race", "Filtre hızla değiştiğinde eski HTTP cevabı yeni ekranı eziyor. React'te nasıl önlersin?", "Debug", ProficiencyLevel.Intermediate, skillBySlug["frontend"], techBySlug["react"], rubric,
                 "AbortController veya query identity kullanır, response'un güncel filtreye ait olduğunu doğrularım.",
                 ["AbortController", "Request identity", "Loading/error state"], ["Timeout eklemek"]),
-            Q("dotnet-cancellation", "HTTP isteği iptal olduğunda veritabanı işinin de durmasını .NET'te nasıl sağlarsın?", "Kod okuma", ProficiencyLevel.Intermediate, skillBySlug["api-design"], techBySlug["dotnet"],
+            Q("dotnet-cancellation", "HTTP isteği iptal olduğunda veritabanı işinin de durmasını .NET'te nasıl sağlarsın?", "Kod okuma", ProficiencyLevel.Intermediate, skillBySlug["api-design"], techBySlug["dotnet"], rubric,
                 "CancellationToken'ı endpoint'ten application ve EF Core async metoduna kadar taşırım.",
                 ["Token propagation", "ToListAsync(token)", "İptali hata saymamak"], [".Result kullanmak"]),
-            Q("spring-transactions", "Spring Boot servisinde transaction sınırını controller yerine servis katmanında neden kurarsın?", "Tasarım", ProficiencyLevel.Intermediate, skillBySlug["database"], techBySlug["spring"],
+            Q("spring-transactions", "Spring Boot servisinde transaction sınırını controller yerine servis katmanında neden kurarsın?", "Tasarım", ProficiencyLevel.Intermediate, skillBySlug["database"], techBySlug["spring"], rubric,
                 "İş use-case'inin atomik sınırı servis katmanındadır; HTTP ve persistence ayrıntısını domain kararından ayırırım.",
                 ["Use-case sınırı", "Atomiklik", "Rollback"], ["Her repository metoduna ayrı transaction"]),
-            Q("node-event-loop", "Node.js API'de CPU yoğun bir işlem tüm istekleri yavaşlatıyor. Neyi ölçer ve nasıl ayırırsın?", "Performans", ProficiencyLevel.Advanced, skillBySlug["debugging"], techBySlug["nodejs"],
+            Q("node-event-loop", "Node.js API'de CPU yoğun bir işlem tüm istekleri yavaşlatıyor. Neyi ölçer ve nasıl ayırırsın?", "Performans", ProficiencyLevel.Advanced, skillBySlug["debugging"], techBySlug["nodejs"], rubric,
                 "Event-loop lag ve CPU profilini ölçer; işi worker thread veya ayrı worker sürecine taşırım.",
                 ["Event-loop lag", "CPU profile", "Worker"], ["Daha çok await eklemek"]),
-            Q("python-async", "Python web servisinde async endpoint içinde bloklayan çağrı kullanmanın etkisi nedir?", "Kod okuma", ProficiencyLevel.Intermediate, skillBySlug["debugging"], techBySlug["python"],
+            Q("python-async", "Python web servisinde async endpoint içinde bloklayan çağrı kullanmanın etkisi nedir?", "Kod okuma", ProficiencyLevel.Intermediate, skillBySlug["debugging"], techBySlug["python"], rubric,
                 "Event loop bloklanır ve eşzamanlı istekler bekler; async istemci veya kontrollü thread offload kullanırım.",
                 ["Event loop", "Blocking I/O", "Async client"], ["Her fonksiyonu async yapmak"]),
-            Q("otel-triage", "Kullanıcı yavaşlık bildiriyor. Metric, trace ve log hangi sırayla yardımcı olur?", "Incident", ProficiencyLevel.Intermediate, skillBySlug["observability"], null,
+            Q("otel-triage", "Kullanıcı yavaşlık bildiriyor. Metric, trace ve log hangi sırayla yardımcı olur?", "Incident", ProficiencyLevel.Intermediate, skillBySlug["observability"], null, rubric,
                 "Metric etkiyi ve zamanı, trace yavaş span'i, log ise bağlamsal nedeni bulmaya yardım eder.",
                 ["Metric ile kapsam", "Trace ile yol", "Log ile neden"], ["Sadece log aramak"])
         };
@@ -104,13 +106,37 @@ public static class SeedData
         => new() { Id = Guid.NewGuid(), Slug = slug, Name = name, Category = category, Description = description };
     private static Specialization Spec(string slug, string name, string description)
         => new() { Id = Guid.NewGuid(), Slug = slug, Name = name, Description = description };
-    private static Question Q(string stableId, string prompt, string type, ProficiencyLevel level, Skill skill, Technology? tech, string answer, string[] signals, string[] redFlags)
+    private static Question Q(string stableId, string prompt, string type, ProficiencyLevel level, Skill skill, Technology? tech, Rubric rubric, string answer, string[] signals, string[] redFlags)
         => new()
         {
             Id = Guid.NewGuid(), StableId = stableId, Prompt = prompt, Type = type, Level = level, Skill = skill,
-            Technology = tech, ModelAnswer = answer, ExpectedSignalsJson = JsonSerializer.Serialize(signals),
+            Technology = tech, Rubric = rubric, Status = PublicationStatus.Published, PublishedAt = DateTimeOffset.UtcNow,
+            ModelAnswer = answer, ExpectedSignalsJson = JsonSerializer.Serialize(signals),
             RedFlagsJson = JsonSerializer.Serialize(redFlags),
             RubricJson = """{"technicalAccuracy":40,"analysis":25,"tradeOff":20,"communication":15}"""
+        };
+    private static Rubric DefaultRubric()
+    {
+        var rubric = new Rubric
+        {
+            Id = Guid.NewGuid(), StableId = "default-technical-answer", Title = "Teknik cevap değerlendirmesi",
+            Description = "Teknik doğruluk, analiz, trade-off ve iletişim boyutları",
+            Status = PublicationStatus.Published, PublishedAt = DateTimeOffset.UtcNow
+        };
+        rubric.Dimensions =
+        [
+            Dimension(rubric, "technicalAccuracy", "Teknik doğruluk", 40, 1),
+            Dimension(rubric, "analysis", "Analiz", 25, 2),
+            Dimension(rubric, "tradeOff", "Trade-off", 20, 3),
+            Dimension(rubric, "communication", "İletişim", 15, 4)
+        ];
+        return rubric;
+    }
+    private static RubricDimension Dimension(Rubric rubric, string key, string label, int weight, int order)
+        => new()
+        {
+            Id = Guid.NewGuid(), Rubric = rubric, Key = key, Label = label,
+            Description = $"{label} değerlendirme boyutu", Weight = weight, Order = order
         };
     private static void AddSpecSkills(AppDbContext db, Specialization spec, IReadOnlyDictionary<string, Skill> skills, string[] slugs)
     {
