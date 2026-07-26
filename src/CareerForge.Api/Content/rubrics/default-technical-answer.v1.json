@@ -1,0 +1,13 @@
+{
+  "stableId": "default-technical-answer",
+  "version": 1,
+  "title": "Teknik cevap değerlendirmesi",
+  "description": "Teknik doğruluk, analiz, trade-off ve iletişim boyutları",
+  "status": "published",
+  "dimensions": [
+    { "key": "technicalAccuracy", "label": "Teknik doğruluk", "description": "Teknik açıklamaların doğruluğu", "weight": 40, "order": 1 },
+    { "key": "analysis", "label": "Analiz", "description": "Problemi yapılandırma ve nedenleri açıklama", "weight": 25, "order": 2 },
+    { "key": "tradeOff", "label": "Trade-off", "description": "Alternatiflerin bedel ve faydalarını değerlendirme", "weight": 20, "order": 3 },
+    { "key": "communication", "label": "İletişim", "description": "Cevabı açık ve tutarlı aktarma", "weight": 15, "order": 4 }
+  ]
+}

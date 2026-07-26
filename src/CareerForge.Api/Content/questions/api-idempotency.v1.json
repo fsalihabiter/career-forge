@@ -1,0 +1,15 @@
+{
+  "stableId": "api-idempotency",
+  "version": 1,
+  "prompt": "Kullanıcı aynı oluşturma isteğini iki kez gönderdiğinde çift kayıt oluşmasını nasıl önlersin?",
+  "type": "Tasarım",
+  "level": "intermediate",
+  "skillSlug": "api-design",
+  "technologySlug": null,
+  "rubricStableId": "default-technical-answer",
+  "rubricVersion": 1,
+  "modelAnswer": "İstemci işlem anahtarı, veritabanı unique constraint'i ve aynı transaction içinde sonuç kaydı kullanırım.",
+  "expectedSignals": ["Idempotency key", "Unique constraint", "Transaction sınırı"],
+  "redFlags": ["Sadece butonu kapatmak"],
+  "status": "published"
+}

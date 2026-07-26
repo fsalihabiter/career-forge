@@ -1,0 +1,24 @@
+{
+  "stableId": "strategy-pattern",
+  "version": 1,
+  "slug": "strategy-pattern",
+  "title": "Strategy Pattern",
+  "summary": "Değişebilen bir algoritmayı çağıran koddan ayır.",
+  "technologySlug": null,
+  "level": "intermediate",
+  "estimatedMinutes": 10,
+  "status": "draft",
+  "objectives": ["Strategy kullanım sınırını tanımak"],
+  "prerequisites": ["Interface ve composition bilgisi"],
+  "category": "Davranışsal",
+  "sections": [
+    {
+      "key": "intent",
+      "title": "Amaç",
+      "order": 1,
+      "bodyMarkdown": "Strategy, aynı işi yapan değiştirilebilir algoritmaları ortak bir sözleşme arkasında toplar.",
+      "codeLanguage": null,
+      "codeSample": null
+    }
+  ]
+}

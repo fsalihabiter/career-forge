@@ -1,0 +1,24 @@
+{
+  "stableId": "middleware-order",
+  "version": 1,
+  "slug": "aspnet-core-middleware-sirasi",
+  "title": "ASP.NET Core middleware sırası",
+  "summary": "HTTP pipeline bileşenlerinin neden belirli bir sırada çalıştırıldığını öğren.",
+  "technologySlug": "dotnet",
+  "level": "intermediate",
+  "estimatedMinutes": 12,
+  "status": "draft",
+  "objectives": ["Middleware sırasının davranışa etkisini açıklamak"],
+  "prerequisites": ["Temel ASP.NET Core bilgisi"],
+  "category": null,
+  "sections": [
+    {
+      "key": "pipeline",
+      "title": "Pipeline nasıl işler?",
+      "order": 1,
+      "bodyMarkdown": "Her middleware isteği bir sonraki bileşene aktarabilir ve yanıt dönüşünde tekrar çalışabilir.",
+      "codeLanguage": "csharp",
+      "codeSample": "app.UseAuthentication();\napp.UseAuthorization();"
+    }
+  ]
+}

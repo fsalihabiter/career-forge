@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-26
 - Aktif faz: Faz 2 — Öğrenme ve içerik MVP'si
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-202 — Git tabanlı içerik yükleme`
-- Son tamamlanan iş: `CF-201 — Versiyonlanabilir içerik şeması`
+- Sıradaki iş: `CF-203 — Öğrenme rehberi API'si`
+- Son tamamlanan iş: `CF-202 — Git tabanlı içerik yükleme`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -20,7 +20,7 @@ işlenir.
 | --- | ---: | ---: | --- |
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
-| 2. Öğrenme ve içerik MVP'si | 1 | 8 | Devam ediyor |
+| 2. Öğrenme ve içerik MVP'si | 2 | 8 | Devam ediyor |
 | 3. İlerleme ve tekrar | 0 | 6 | Bekliyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
@@ -56,8 +56,8 @@ işlenir.
 | ID | Durum | İş | Bağımlılık | Kabul özeti |
 | --- | --- | --- | --- | --- |
 | CF-201 | Tamamlandı | Versiyonlanabilir içerik şeması | CF-104 | Ders, bölüm, soru, rubric ve pattern modeli tanımlanır |
-| CF-202 | Sıradaki | Git tabanlı içerik yükleme | CF-201 | İçerik koddan ayrılmış dosyalardan doğrulanarak yüklenir |
-| CF-203 | Bekliyor | Öğrenme rehberi API'si | CF-202 | Teknoloji, ders listesi ve ders detayı endpoint'leri hazırdır |
+| CF-202 | Tamamlandı | Git tabanlı içerik yükleme | CF-201 | İçerik koddan ayrılmış dosyalardan doğrulanarak yüklenir |
+| CF-203 | Sıradaki | Öğrenme rehberi API'si | CF-202 | Teknoloji, ders listesi ve ders detayı endpoint'leri hazırdır |
 | CF-204 | Bekliyor | Öğrenme rehberi arayüzü | CF-203 | Liste ve ders okuma akışı responsive ve erişilebilirdir |
 | CF-205 | Bekliyor | İlk üç örnek ders | CF-202 | Middleware dahil üç tam ders içerir |
 | CF-206 | Bekliyor | Pattern rehberi | CF-202 | Strategy ve Outbox dahil ilk pattern sayfaları hazırdır |
@@ -267,6 +267,27 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
   snapshot'ında bekleyen değişiklik kalmadığı doğrulandı.
 - Seed verisi ilişkisel rubric modelini kullanacak şekilde güncellendi; backend
   testlerinin 16/16'sı geçti.
+
+### 2026-07-26 — CF-202 başlatıldı
+
+- Rubric, ders, pattern ve soru içeriklerini sürümlü Git dosyalarından doğrulayarak
+  veritabanına aktaran idempotent yükleme altyapısının geliştirilmesine başlandı.
+
+### 2026-07-26 — CF-202 tamamlandı
+
+- Rubric, ders, pattern ve soru sözleşmeleri koddan ayrı, sürümlü JSON dosyaları
+  olarak tanımlandı ve publish çıktısına dahil edildi.
+- Dosyalar veritabanı değişikliğinden önce zorunlu alan, sürüm, benzersizlik,
+  bölüm sırası, rubric ağırlığı ve referans bütünlüğü açısından doğrulanıyor.
+- Doğrulanmış içerik transaction içinde stable ID + version anahtarıyla idempotent
+  olarak ekleniyor veya güncelleniyor; eksik katalog referansları açık hatayla
+  reddediliyor.
+- Uygulama başlangıcında migration ve temel seed işleminden sonra Git içerik
+  yükleyicisi otomatik çalışacak şekilde yapılandırıldı.
+- Geçerli içeriğin iki kez yüklenmesi ve geçersiz içeriğin veritabanını
+  değiştirmeden reddedilmesi integration testleriyle doğrulandı.
+- Release build hatasız, backend testleri 18/18 başarılı ve güncel API containerı
+  PostgreSQL üzerinde içeriği yükledikten sonra health kontrolünden geçti.
 
 ## Karar günlüğü
 

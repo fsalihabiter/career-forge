@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
 using CareerForge.Api;
+using CareerForge.Api.Content;
 using CareerForge.Api.Data;
 using CareerForge.Api.Models;
 using CareerForge.Api.Services;
@@ -64,6 +65,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<PlanningService>();
 builder.Services.AddScoped<SessionService>();
+builder.Services.AddScoped<ContentImportService>();
 
 if (!builder.Environment.IsEnvironment("Testing"))
 {
@@ -121,6 +123,8 @@ if (!app.Environment.IsEnvironment("Testing"))
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
     await SeedData.ApplyAsync(db);
+    var importer = scope.ServiceProvider.GetRequiredService<ContentImportService>();
+    await importer.ImportAsync(Path.Combine(app.Environment.ContentRootPath, "Content"));
 }
 
 app.Run();
