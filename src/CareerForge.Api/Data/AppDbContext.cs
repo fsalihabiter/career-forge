@@ -14,6 +14,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<SpecializationSkill> SpecializationSkills => Set<SpecializationSkill>();
     public DbSet<UserSkill> UserSkills => Set<UserSkill>();
     public DbSet<SkillAssessment> SkillAssessments => Set<SkillAssessment>();
+    public DbSet<ReviewItem> ReviewItems => Set<ReviewItem>();
     public DbSet<UserTechnology> UserTechnologies => Set<UserTechnology>();
     public DbSet<UserSpecialization> UserSpecializations => Set<UserSpecialization>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
@@ -50,6 +51,19 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             .HasOne(x => x.UserSkill)
             .WithMany(x => x.Assessments)
             .HasForeignKey(x => x.UserSkillId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ReviewItem>()
+            .HasIndex(x => new { x.UserId, x.QuestionId })
+            .IsUnique();
+        modelBuilder.Entity<ReviewItem>()
+            .HasOne(x => x.Question)
+            .WithMany()
+            .HasForeignKey(x => x.QuestionId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ReviewItem>()
+            .HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<SkillAssessment>()
             .HasOne(x => x.Session)

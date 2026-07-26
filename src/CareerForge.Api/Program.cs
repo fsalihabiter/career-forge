@@ -116,6 +116,7 @@ CatalogEndpoints.Map(api);
 LearningGuideEndpoints.Map(api);
 AuthEndpoints.Map(api, builder.Configuration);
 ProfileEndpoints.Map(api);
+ReviewEndpoints.Map(api);
 SessionEndpoints.Map(api);
 
 if (!app.Environment.IsEnvironment("Testing"))

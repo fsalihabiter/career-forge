@@ -505,3 +505,107 @@ public static class SessionEndpoints
         });
     }
 }
+
+public static class ReviewEndpoints
+{
+    public static void Map(RouteGroupBuilder api)
+    {
+        var group = api.MapGroup("/review-items").RequireAuthorization();
+
+        group.MapGet("/", async (
+            string? skill,
+            string? level,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            CancellationToken ct) =>
+        {
+            ProficiencyLevel? parsedLevel = null;
+            if (!string.IsNullOrWhiteSpace(level))
+            {
+                if (!Enum.TryParse<ProficiencyLevel>(level, true, out var value)
+                    || !Enum.IsDefined(value))
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["level"] = ["Geçerli bir yetkinlik seviyesi girilmelidir."]
+                    });
+                parsedLevel = value;
+            }
+
+            var query = db.ReviewItems.AsNoTracking()
+                .Where(x => x.UserId == principal.UserId());
+            if (!string.IsNullOrWhiteSpace(skill))
+                query = query.Where(x => x.Question.Skill.Slug == skill.Trim());
+            if (parsedLevel is not null)
+                query = query.Where(x => x.Question.Level == parsedLevel);
+
+            var items = await query
+                .Include(x => x.Question).ThenInclude(x => x.Skill)
+                .Include(x => x.Question).ThenInclude(x => x.Technology)
+                .ToListAsync(ct);
+            return Results.Ok(items.OrderByDescending(x => x.AddedAt).Select(ToResponse));
+        });
+
+        group.MapPost("/{questionId:guid}", async (
+            Guid questionId,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            CancellationToken ct) =>
+        {
+            var question = await db.Questions
+                .Include(x => x.Skill)
+                .Include(x => x.Technology)
+                .SingleOrDefaultAsync(x =>
+                    x.Id == questionId && x.Status == PublicationStatus.Published,
+                    ct);
+            if (question is null) return Results.NotFound();
+
+            var userId = principal.UserId();
+            var item = await db.ReviewItems
+                .Include(x => x.Question).ThenInclude(x => x.Skill)
+                .Include(x => x.Question).ThenInclude(x => x.Technology)
+                .SingleOrDefaultAsync(
+                    x => x.UserId == userId && x.QuestionId == questionId, ct);
+            if (item is null)
+            {
+                item = new ReviewItem
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    QuestionId = questionId,
+                    Question = question
+                };
+                db.ReviewItems.Add(item);
+                await db.SaveChangesAsync(ct);
+            }
+            return Results.Ok(ToResponse(item));
+        });
+
+        group.MapDelete("/{questionId:guid}", async (
+            Guid questionId,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            CancellationToken ct) =>
+        {
+            var item = await db.ReviewItems.SingleOrDefaultAsync(
+                x => x.UserId == principal.UserId() && x.QuestionId == questionId,
+                ct);
+            if (item is null) return Results.NotFound();
+            db.ReviewItems.Remove(item);
+            await db.SaveChangesAsync(ct);
+            return Results.NoContent();
+        });
+    }
+
+    private static ReviewItemResponse ToResponse(ReviewItem item) =>
+        new(
+            item.Id,
+            item.QuestionId,
+            item.Question.Prompt,
+            item.Question.Type,
+            item.Question.Level.ToString().ToLowerInvariant(),
+            item.Question.SkillId,
+            item.Question.Skill.Slug,
+            item.Question.Skill.Name,
+            item.Question.Technology?.Name,
+            item.AddedAt);
+}

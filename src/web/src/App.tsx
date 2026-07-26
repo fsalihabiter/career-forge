@@ -6,7 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5080/api'
 
 type Level = 'beginner' | 'basic' | 'intermediate' | 'advanced' | 'expert'
 type Source = 'skills' | 'specialization' | 'jobRequirements' | 'general'
-type Screen = 'auth' | 'onboarding' | 'dashboard' | 'learning' | 'lesson' | 'session' | 'result'
+type Screen = 'auth' | 'onboarding' | 'dashboard' | 'learning' | 'lesson' | 'session' | 'result' | 'review'
 type Technology = { id: string; slug: string; name: string; category: string; maturity: string; accent: string }
 type Skill = { id: string; slug: string; name: string; category: string; description: string }
 type Specialization = {
@@ -87,6 +87,18 @@ type LessonProgress = {
   completed: boolean
   updatedAt: string
 }
+type ReviewItem = {
+  id: string
+  questionId: string
+  prompt: string
+  type: string
+  level: string
+  skillId: string
+  skillSlug: string
+  skill: string
+  technology?: string
+  addedAt: string
+}
 
 const levelLabels: Record<string, string> = {
   beginner: 'Başlangıç',
@@ -136,6 +148,7 @@ function App() {
   const [lesson, setLesson] = useState<LessonDetail | null>(null)
   const [lessonProgress, setLessonProgress] = useState<LessonProgress | null>(null)
   const [patterns, setPatterns] = useState<PatternSummary[]>([])
+  const [reviewItems, setReviewItems] = useState<ReviewItem[]>([])
   const [guideMode, setGuideMode] = useState<'lessons' | 'patterns'>('lessons')
   const [learningTechnology, setLearningTechnology] = useState('')
   const [message, setMessage] = useState('')
@@ -263,6 +276,29 @@ function App() {
     }
   }
 
+  const openReview = async () => {
+    setScreen('review')
+    setLoading(true)
+    setMessage('')
+    try {
+      setReviewItems(await api<ReviewItem[]>('/review-items/'))
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Tekrar listesi yüklenemedi.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const addReviewItem = async (questionId: string) => {
+    const item = await api<ReviewItem>(`/review-items/${questionId}`, { method: 'POST' })
+    setReviewItems(current => current.some(x => x.questionId === questionId) ? current : [item, ...current])
+  }
+
+  const removeReviewItem = async (questionId: string) => {
+    await api(`/review-items/${questionId}`, { method: 'DELETE' })
+    setReviewItems(current => current.filter(x => x.questionId !== questionId))
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -273,6 +309,7 @@ function App() {
         <nav aria-label="Ana menü">
           {authenticated && <button className={screen === 'dashboard' ? 'nav-active' : ''} onClick={() => { setScreen('dashboard'); loadDashboard() }}>Rotam</button>}
           <button className={screen === 'learning' || screen === 'lesson' ? 'nav-active' : ''} onClick={() => openLearning()}>Rehber</button>
+          {authenticated && <button className={screen === 'review' ? 'nav-active' : ''} onClick={openReview}>Tekrar</button>}
           {authenticated && <button onClick={() => startSession('interview')}>Mülakat</button>}
           {authenticated && <button onClick={logout}>Çıkış</button>}
           {!authenticated && screen !== 'auth' && <button onClick={() => setScreen('auth')}>Giriş yap</button>}
@@ -333,7 +370,19 @@ function App() {
           />
         )}
         {screen === 'result' && result && (
-          <ResultScreen result={result} onDone={() => { setScreen('dashboard'); loadDashboard() }} />
+          <ResultScreen
+            result={result}
+            onAddReview={addReviewItem}
+            onDone={() => { setScreen('dashboard'); loadDashboard() }}
+          />
+        )}
+        {screen === 'review' && (
+          <ReviewScreen
+            items={reviewItems}
+            loading={loading}
+            onRemove={removeReviewItem}
+            onPractice={() => startSession('interview')}
+          />
         )}
       </main>
     </div>
@@ -923,8 +972,25 @@ function SessionScreen({ session, onCancel, onComplete, onError }: {
   )
 }
 
-function ResultScreen({ result, onDone }: { result: SessionData; onDone: () => void }) {
+function ResultScreen({ result, onAddReview, onDone }: {
+  result: SessionData
+  onAddReview: (questionId: string) => Promise<void>
+  onDone: () => void
+}) {
   const answered = result.questions.filter(x => x.answered)
+  const [savedQuestions, setSavedQuestions] = useState<string[]>([])
+  const [savingQuestion, setSavingQuestion] = useState('')
+
+  const saveForReview = async (questionId: string) => {
+    setSavingQuestion(questionId)
+    try {
+      await onAddReview(questionId)
+      setSavedQuestions(current => [...current, questionId])
+    } finally {
+      setSavingQuestion('')
+    }
+  }
+
   return (
     <section className="result-page">
       <div className="result-hero"><span className="eyebrow">OTURUM TAMAMLANDI</span><h1>Tek puan değil, <em>kanıt haritası.</em></h1><p>{answered.length} cevap kaydedildi. Her alanın güveni, yeterli ve farklı kanıtlar geldikçe yükselecek.</p></div>
@@ -952,11 +1018,91 @@ function ResultScreen({ result, onDone }: { result: SessionData; onDone: () => v
               )}
               <div><small>MODEL YAKLAŞIM</small><p>{question.modelAnswer}</p></div>
               <div className="signal-columns"><section><small>GÜÇLÜ SİNYALLER</small><ul>{question.signals?.map(signal => <li key={signal}>{signal}</li>)}</ul></section><section><small>RİSKLİ YAKLAŞIMLAR</small><ul>{question.redFlags?.map(flag => <li key={flag}>{flag}</li>)}</ul></section></div>
+              <button
+                className="review-save"
+                disabled={savedQuestions.includes(question.id) || savingQuestion === question.id}
+                onClick={() => saveForReview(question.id)}
+              >
+                {savedQuestions.includes(question.id) ? '✓ Tekrar listesinde' : savingQuestion === question.id ? 'Ekleniyor…' : '+ Tekrar listesine ekle'}
+              </button>
             </div>
           </details>
         ))}
       </div>
       <button className="primary" onClick={onDone}>Güncellenen rotamı gör →</button>
+    </section>
+  )
+}
+
+function ReviewScreen({ items, loading, onRemove, onPractice }: {
+  items: ReviewItem[]
+  loading: boolean
+  onRemove: (questionId: string) => Promise<void>
+  onPractice: () => void
+}) {
+  const [skill, setSkill] = useState('')
+  const [level, setLevel] = useState('')
+  const [removing, setRemoving] = useState('')
+  const skills = [...new Map(items.map(item => [item.skillSlug, item.skill])).entries()]
+  const visible = items.filter(item => (!skill || item.skillSlug === skill) && (!level || item.level === level))
+
+  const remove = async (questionId: string) => {
+    setRemoving(questionId)
+    try {
+      await onRemove(questionId)
+    } finally {
+      setRemoving('')
+    }
+  }
+
+  return (
+    <section className="review-page">
+      <header className="review-hero">
+        <div><span className="eyebrow">GERİ DÖNÜŞ KUYRUĞU</span><h1>Bir kez cevapladın.<br /><em>Şimdi sağlamlaştır.</em></h1></div>
+        <p>Zorlandığın veya farklı bir yaklaşımla yeniden kurmak istediğin soruları burada tut. Listeyi küçük ve niyetli bırak.</p>
+      </header>
+      <div className="review-layout">
+        <aside className="review-filters">
+          <div><small>FİLTRELE</small><b>{visible.length} / {items.length}</b></div>
+          <label>Beceri
+            <select value={skill} onChange={event => setSkill(event.target.value)}>
+              <option value="">Tüm beceriler</option>
+              {skills.map(([slug, name]) => <option key={slug} value={slug}>{name}</option>)}
+            </select>
+          </label>
+          <label>Seviye
+            <select value={level} onChange={event => setLevel(event.target.value)}>
+              <option value="">Tüm seviyeler</option>
+              {Object.entries(levelLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+        </aside>
+        <div className="review-ledger">
+          <div className="review-ledger-head"><span>TEKRAR DEFTERİ</span><b>{visible.length.toString().padStart(2, '0')}</b></div>
+          {loading ? (
+            <div className="guide-state"><div className="loading-line" /><p>Tekrar listesi yükleniyor…</p></div>
+          ) : visible.length === 0 ? (
+            <Empty
+              title={items.length ? 'Bu filtrede soru yok' : 'Tekrar listen boş'}
+              copy={items.length ? 'Başka bir beceri veya seviye seç.' : 'Oturum sonucunda tekrar etmek istediğin soruları listeye ekle.'}
+              action={items.length ? undefined : 'Mülakat provası başlat'}
+              onAction={items.length ? undefined : onPractice}
+            />
+          ) : visible.map((item, index) => (
+            <article className="review-row" key={item.id}>
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <div>
+                <div className="question-meta"><span>{item.skill}</span><span>{levelLabels[item.level] ?? item.level}</span>{item.technology && <span>{item.technology}</span>}</div>
+                <h2>{item.prompt}</h2>
+                <small>{item.type} · {new Date(item.addedAt).toLocaleDateString('tr-TR')}</small>
+              </div>
+              <button disabled={removing === item.questionId} onClick={() => remove(item.questionId)}>
+                {removing === item.questionId ? 'Çıkarılıyor…' : 'Listeden çıkar'}
+              </button>
+            </article>
+          ))}
+        </div>
+      </div>
     </section>
   )
 }

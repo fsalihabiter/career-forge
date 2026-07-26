@@ -161,6 +161,20 @@ describe('App', () => {
       if (url.endsWith('/diagnostic-sessions/session-1/result')) {
         return response({ id: 'session-1', kind: 'diagnostic', status: 'completed', questions: [completedQuestion] })
       }
+      if (url.endsWith('/review-items/question-1') && init?.method === 'POST') {
+        return response({
+          id: 'review-1',
+          questionId: question.id,
+          prompt: question.prompt,
+          type: question.type,
+          level: question.level,
+          skillId: 'skill-1',
+          skillSlug: 'api-design',
+          skill: question.skill,
+          technology: 'ASP.NET Core',
+          addedAt: '2026-07-26T18:00:00Z',
+        })
+      }
       if (url.endsWith('/diagnostic-sessions/session-1')) {
         return response({ id: 'session-1', kind: 'diagnostic', status: 'active', questions: [question] })
       }
@@ -188,7 +202,9 @@ describe('App', () => {
     expect(screen.getByText('Teknik doğruluk')).toBeInTheDocument()
     expect(screen.getByText(/Öz değerlendirmen: 50/)).toBeInTheDocument()
     expect(screen.getByLabelText('Teknik doğruluk puanı 80')).toBeInTheDocument()
-  })
+    await user.click(screen.getByRole('button', { name: '+ Tekrar listesine ekle' }))
+    expect(await screen.findByRole('button', { name: '✓ Tekrar listesinde' })).toBeDisabled()
+  }, 10_000)
 
   it('filters the learning guide and opens an accessible lesson reader', async () => {
     localStorage.setItem('careerforge-token', 'existing-token')

@@ -102,6 +102,15 @@ public sealed class SkillAssessment
     public InterviewSession Session { get; set; } = null!;
 }
 
+public sealed class ReviewItem
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public Guid QuestionId { get; set; }
+    public DateTimeOffset AddedAt { get; set; } = DateTimeOffset.UtcNow;
+    public Question Question { get; set; } = null!;
+}
+
 public sealed class UserSpecialization
 {
     public Guid UserId { get; set; }

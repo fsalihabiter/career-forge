@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-26
 - Aktif faz: Faz 3 — İlerleme ve tekrar
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-303 — Tekrar listesi`
-- Son tamamlanan iş: `CF-302 — Beceri bazlı gelişim hesabı`
+- Sıradaki iş: `CF-304 — Spaced repetition planı`
+- Son tamamlanan iş: `CF-303 — Tekrar listesi`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -21,7 +21,7 @@ işlenir.
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
 | 2. Öğrenme ve içerik MVP'si | 8 | 8 | Tamamlandı |
-| 3. İlerleme ve tekrar | 2 | 6 | Devam ediyor |
+| 3. İlerleme ve tekrar | 3 | 6 | Devam ediyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
 | 6. Gelişmiş deneyim | 0 | 6 | Bekliyor |
@@ -70,8 +70,8 @@ işlenir.
 | --- | --- | --- | --- | --- |
 | CF-301 | Tamamlandı | Ders ilerleme kaydı | CF-204 | Kullanıcı kaldığı yerden farklı cihazda devam eder |
 | CF-302 | Tamamlandı | Beceri bazlı gelişim hesabı | CF-207 | Ölçülen seviye ve güven skoru geçmişi korunur |
-| CF-303 | Sıradaki | Tekrar listesi | CF-302 | Soru ekleme, çıkarma ve filtreleme yapılır |
-| CF-304 | Bekliyor | Spaced repetition planı | CF-303 | Sonraki tekrar tarihi hesaplanır |
+| CF-303 | Tamamlandı | Tekrar listesi | CF-302 | Soru ekleme, çıkarma ve filtreleme yapılır |
+| CF-304 | Sıradaki | Spaced repetition planı | CF-303 | Sonraki tekrar tarihi hesaplanır |
 | CF-305 | Bekliyor | Kullanıcı dashboard'u | CF-301–304 | Sıradaki çalışma, zayıf alan ve son sonuç görünür |
 | CF-306 | Bekliyor | Erişilebilirlik ve responsive kabul turu | CF-305 | Temel akışlarda klavye, mobil ve taşma sorunları giderilir |
 
@@ -474,6 +474,29 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
 - Gerçek PostgreSQL smoke testinde iki tanılama sonrasında geçmiş 2 noktaya ulaştı,
   kanıt sayıları 1 ve 2, güven değerleri %20 ve %40 olarak döndü ve güncel
   `UserSkill` seviyesi ile son tarihçe noktası eşleşti.
+
+### 2026-07-26 — CF-303 başlatıldı
+
+- Tamamlanan oturumdaki soruları kullanıcıya özel tekrar listesine ekleme, listeden
+  çıkarma ve beceri/seviye bağlamında filtreleme çalışmasına başlandı.
+
+### 2026-07-26 — CF-303 tamamlandı
+
+- Yayındaki sorular kullanıcıya özel ve soru başına benzersiz bir tekrar kaydı
+  olarak eklenebiliyor, listelenebiliyor ve çıkarılabiliyor.
+- Yetkilendirilmiş tekrar API'si beceri ile seviye filtrelerini destekliyor; başka
+  hesapların kayıtlarını okuma veya silme girişimleri veri izolasyonuyla engelleniyor.
+- Sonuç ekranına tekrar listesine ekleme eylemi, ana navigasyona tekrar görünümü ve
+  beceri/seviye filtreli yoğun bir tekrar defteri arayüzü eklendi.
+- PostgreSQL migration'ı kullanıcı ve soruyla ilişkili tekrar kayıtlarını benzersiz
+  kullanıcı-soru kısıtı ve uygun silme davranışlarıyla oluşturdu.
+- Yetkilendirme, idempotent ekleme, filtreleme, hesap izolasyonu ve silme davranışı
+  integration testiyle; sonuçtan listeye ekleme component testiyle doğrulandı.
+- Backend testleri 26/26, frontend testleri 4/4, çözüm ve production/container
+  build başarılıdır; lint yalnızca önceden bilinen engelleyici olmayan `useEffect`
+  uyarısını üretmektedir.
+- Gerçek PostgreSQL smoke testinde soru iki kez eklendiğinde aynı kayıt döndü,
+  beceri filtresi tek kaydı buldu, silme sonrasında liste `[]` oldu ve web 200 döndü.
 
 ## Karar günlüğü
 

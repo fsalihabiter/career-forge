@@ -102,6 +102,18 @@ public sealed record SkillProgressHistoryResponse(
     string? Technology,
     SkillProgressPoint[] History);
 
+public sealed record ReviewItemResponse(
+    Guid Id,
+    Guid QuestionId,
+    string Prompt,
+    string Type,
+    string Level,
+    Guid SkillId,
+    string SkillSlug,
+    string Skill,
+    string? Technology,
+    DateTimeOffset AddedAt);
+
 public sealed record PatternSummary(
     string StableId,
     int Version,
