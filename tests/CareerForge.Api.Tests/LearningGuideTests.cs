@@ -28,11 +28,11 @@ public sealed class LearningGuideTests(CareerForgeApiFactory factory)
         var draftResponse = await client.GetAsync("/api/learning/lessons/test-draft");
         var invalidLevelResponse = await client.GetAsync("/api/learning/lessons?level=unknown");
 
-        var technology = Assert.Single(technologies!);
+        var technology = Assert.Single(technologies!, x => x.Slug == "dotnet");
         Assert.Equal("dotnet", technology.Slug);
-        Assert.Equal(1, technology.LessonCount);
+        Assert.Equal(2, technology.LessonCount);
 
-        var lesson = Assert.Single(lessons!);
+        var lesson = Assert.Single(lessons!, x => x.Slug == "test-middleware");
         Assert.Equal(2, lesson.Version);
         Assert.Equal("Güncel middleware", lesson.Title);
         Assert.Equal("dotnet", lesson.Technology?.Slug);

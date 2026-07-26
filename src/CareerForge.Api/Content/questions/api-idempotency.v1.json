@@ -8,8 +8,8 @@
   "technologySlug": null,
   "rubricStableId": "default-technical-answer",
   "rubricVersion": 1,
-  "modelAnswer": "İstemci işlem anahtarı, veritabanı unique constraint'i ve aynı transaction içinde sonuç kaydı kullanırım.",
+  "modelAnswer": "İstemciden bir idempotency key alır, anahtarı veritabanında unique constraint ile korur ve iş sonucu ile birlikte aynı transaction içinde kaydederim. Tekrarlanan istekte önceki sonucu döndürür, eşzamanlılık ve hata senaryolarını integration testiyle doğrularım.",
   "expectedSignals": ["Idempotency key", "Unique constraint", "Transaction sınırı"],
-  "redFlags": ["Sadece butonu kapatmak"],
+  "redFlags": ["Sadece butonu kapatmak", "Yalnızca uygulama belleğinde anahtar tutmak"],
   "status": "published"
 }

@@ -1,0 +1,15 @@
+{
+  "stableId": "spring-transactions",
+  "version": 1,
+  "prompt": "Spring Boot servisinde transaction sınırını controller yerine servis katmanında neden kurarsın?",
+  "type": "Tasarım",
+  "level": "intermediate",
+  "skillSlug": "database",
+  "technologySlug": "spring",
+  "rubricStableId": "default-technical-answer",
+  "rubricVersion": 1,
+  "modelAnswer": "Transaction sınırı HTTP isteğine değil iş use-case'inin atomiklik ihtiyacına aittir; bu nedenle orchestration yapan servis metodunda kurarım. Tüm veri değişiklikleri aynı rollback davranışını paylaşır, controller taşıma ayrıntısı olarak kalır ve sınırı integration testiyle doğrularım.",
+  "expectedSignals": ["Use-case sınırı", "Atomiklik", "Rollback"],
+  "redFlags": ["Her repository metoduna ayrı transaction", "Controller üzerinde transaction açmak"],
+  "status": "published"
+}

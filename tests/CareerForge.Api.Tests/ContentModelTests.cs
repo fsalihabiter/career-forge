@@ -10,7 +10,7 @@ public sealed class ContentModelTests(CareerForgeApiFactory factory)
     : IClassFixture<CareerForgeApiFactory>
 {
     [Fact]
-    public async Task Seeded_questions_reference_a_versioned_weighted_rubric()
+    public async Task Imported_questions_reference_a_versioned_weighted_rubric()
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

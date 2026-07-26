@@ -1,0 +1,15 @@
+{
+  "stableId": "otel-triage",
+  "version": 1,
+  "prompt": "Kullanıcı yavaşlık bildiriyor. Metric, trace ve log hangi sırayla yardımcı olur?",
+  "type": "Incident",
+  "level": "intermediate",
+  "skillSlug": "observability",
+  "technologySlug": null,
+  "rubricStableId": "default-technical-answer",
+  "rubricVersion": 1,
+  "modelAnswer": "Önce metric ile etkinin zamanını, kapsamını ve hangi SLI'ın bozulduğunu bulurum. İlgili zaman aralığındaki trace ile gecikmenin hangi span'de oluştuğunu daraltır, aynı trace ve correlation ID'ye bağlı loglarla bağlamsal nedeni incelerim.",
+  "expectedSignals": ["Metric ile kapsam", "Trace ile yol", "Log ile neden"],
+  "redFlags": ["Sadece log aramak", "Correlation olmadan sistemleri tek tek taramak"],
+  "status": "published"
+}

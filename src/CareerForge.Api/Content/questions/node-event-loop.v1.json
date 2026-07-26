@@ -1,0 +1,15 @@
+{
+  "stableId": "node-event-loop",
+  "version": 1,
+  "prompt": "Node.js API'de CPU yoğun bir işlem tüm istekleri yavaşlatıyor. Neyi ölçer ve nasıl ayırırsın?",
+  "type": "Performans",
+  "level": "advanced",
+  "skillSlug": "debugging",
+  "technologySlug": "nodejs",
+  "rubricStableId": "default-technical-answer",
+  "rubricVersion": 1,
+  "modelAnswer": "Event-loop lag, CPU profili ve istek latency dağılımını birlikte ölçerim. CPU yoğun işi worker thread ya da ayrı worker sürecine taşır, kuyruk için kapasite ve timeout sınırı koyar; p95 latency ile throughput'u değişiklik öncesi ve sonrası karşılaştırırım.",
+  "expectedSignals": ["Event-loop lag", "CPU profile", "Worker"],
+  "redFlags": ["Daha çok await eklemek", "Ölçmeden process sayısını artırmak"],
+  "status": "published"
+}

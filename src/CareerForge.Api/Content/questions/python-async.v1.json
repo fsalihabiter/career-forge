@@ -1,0 +1,15 @@
+{
+  "stableId": "python-async",
+  "version": 1,
+  "prompt": "Python web servisinde async endpoint içinde bloklayan çağrı kullanmanın etkisi nedir?",
+  "type": "Kod okuma",
+  "level": "intermediate",
+  "skillSlug": "debugging",
+  "technologySlug": "python",
+  "rubricStableId": "default-technical-answer",
+  "rubricVersion": 1,
+  "modelAnswer": "Bloklayan I/O event loop'u durdurur ve aynı worker'daki eşzamanlı isteklerin beklemesine neden olur. Async uyumlu istemci kullanır veya zorunlu bloklayan çağrıyı sınırlı bir thread pool'a taşır; event-loop lag ve latency ile etkisini doğrularım.",
+  "expectedSignals": ["Event loop", "Blocking I/O", "Async client"],
+  "redFlags": ["Her fonksiyonu async yapmak", "Sınırsız thread açmak"],
+  "status": "published"
+}

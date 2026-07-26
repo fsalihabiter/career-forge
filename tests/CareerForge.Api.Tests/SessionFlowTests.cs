@@ -99,6 +99,62 @@ public sealed class SessionFlowTests(CareerForgeApiFactory factory)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Ten_question_interview_is_balanced_completed_and_fully_reviewable()
+    {
+        using var client = await CreateAuthenticatedClientAsync();
+        var startResponse = await client.PostAsJsonAsync(
+            "/api/interview-sessions/",
+            new StartSessionRequest(10));
+        var created = await startResponse.Content.ReadFromJsonAsync<SessionCreated>();
+        Assert.Equal(HttpStatusCode.Created, startResponse.StatusCode);
+        Assert.NotNull(created);
+
+        var active = await client.GetFromJsonAsync<SessionDetail>(
+            $"/api/interview-sessions/{created.Id}");
+        Assert.NotNull(active);
+        Assert.Equal(10, active.Questions.Length);
+        Assert.Equal(10, active.Questions.Select(x => x.Id).Distinct().Count());
+        Assert.True(active.Questions.Select(x => x.Type).Distinct().Count() >= 5);
+        Assert.All(active.Questions, question =>
+        {
+            Assert.Null(question.ModelAnswer);
+            Assert.Null(question.Signals);
+            Assert.Null(question.RedFlags);
+        });
+
+        foreach (var question in active.Questions)
+        {
+            var response = await client.PostAsJsonAsync(
+                $"/api/interview-sessions/{created.Id}/answers/{question.Id}",
+                new AnswerRequest(
+                    "Önce kanıtı toplar, alternatifin risk ve bedelini karşılaştırır, sonucu bir metrikle doğrularım.",
+                    65));
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+
+        var completeResponse = await client.PostAsync(
+            $"/api/interview-sessions/{created.Id}/complete",
+            null);
+        var completion = await completeResponse.Content.ReadFromJsonAsync<CompletionResult>();
+        Assert.Equal(HttpStatusCode.OK, completeResponse.StatusCode);
+        Assert.NotNull(completion);
+        Assert.Equal(10, completion.Answered);
+        Assert.Equal(10, completion.Total);
+
+        var result = await client.GetFromJsonAsync<SessionDetail>(
+            $"/api/interview-sessions/{created.Id}/result");
+        Assert.NotNull(result);
+        Assert.All(result.Questions, question =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(question.ModelAnswer));
+            Assert.NotEmpty(question.Signals!);
+            Assert.NotEmpty(question.RedFlags!);
+            Assert.NotNull(question.Evaluation);
+            Assert.Equal(4, question.Evaluation.Dimensions.Length);
+        });
+    }
+
     private async Task<HttpClient> CreateAuthenticatedClientAsync()
     {
         var client = factory.CreateClient();

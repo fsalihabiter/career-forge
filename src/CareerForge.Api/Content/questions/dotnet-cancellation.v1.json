@@ -1,0 +1,15 @@
+{
+  "stableId": "dotnet-cancellation",
+  "version": 1,
+  "prompt": "HTTP isteği iptal olduğunda veritabanı işinin de durmasını .NET'te nasıl sağlarsın?",
+  "type": "Kod okuma",
+  "level": "intermediate",
+  "skillSlug": "api-design",
+  "technologySlug": "dotnet",
+  "rubricStableId": "default-technical-answer",
+  "rubricVersion": 1,
+  "modelAnswer": "RequestAborted CancellationToken'ını endpoint'ten application servisine ve ToListAsync(token) gibi EF Core async çağrılarına kadar kesintisiz taşırım. OperationCanceledException'ı beklenen iptal olarak sınıflandırır, token ile başlamayan bağımsız kritik işleri ayrı yaşam döngüsüne alırım.",
+  "expectedSignals": ["Token propagation", "ToListAsync(token)", "İptali hata saymamak"],
+  "redFlags": [".Result kullanmak", "Yeni CancellationToken üretmek"],
+  "status": "published"
+}

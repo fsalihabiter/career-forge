@@ -105,7 +105,12 @@ public sealed class ContentImportService(AppDbContext db, ILogger<ContentImportS
             Required(question.StableId, "Soru stableId");
             Required(question.Prompt, $"Soru {question.StableId} metni");
             Required(question.SkillSlug, $"Soru {question.StableId} skillSlug");
+            Required(question.ModelAnswer, $"Soru {question.StableId} model cevabı");
             Positive(question.Version, $"Soru {question.StableId} sürümü");
+            if (question.ExpectedSignals.Count == 0)
+                throw new ContentValidationException($"Soru {question.StableId} en az bir güçlü sinyal içermelidir.");
+            if (question.RedFlags.Count == 0)
+                throw new ContentValidationException($"Soru {question.StableId} en az bir kırmızı bayrak içermelidir.");
             if (!rubricKeys.Contains((question.RubricStableId, question.RubricVersion)))
                 throw new ContentValidationException($"Soru {question.StableId}, dosyalarda bulunmayan rubric sürümüne bağlı.");
         }

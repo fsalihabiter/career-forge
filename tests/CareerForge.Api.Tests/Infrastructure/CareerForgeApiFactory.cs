@@ -1,4 +1,5 @@
 using CareerForge.Api.Data;
+using CareerForge.Api.Content;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
@@ -31,6 +32,11 @@ public sealed class CareerForgeApiFactory : WebApplicationFactory<Program>
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Database.EnsureCreated();
             SeedData.ApplyAsync(db).GetAwaiter().GetResult();
+            var environment = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+            var importer = scope.ServiceProvider.GetRequiredService<ContentImportService>();
+            importer.ImportAsync(Path.Combine(environment.ContentRootPath, "Content"))
+                .GetAwaiter()
+                .GetResult();
         });
     }
 

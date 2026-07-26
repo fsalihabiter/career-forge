@@ -1,0 +1,15 @@
+{
+  "stableId": "postgres-index",
+  "version": 1,
+  "prompt": "Filtreli bir sorgu büyüdükçe yavaşlıyor. PostgreSQL tarafında nasıl incelersin?",
+  "type": "Performans",
+  "level": "intermediate",
+  "skillSlug": "database",
+  "technologySlug": "postgresql",
+  "rubricStableId": "default-technical-answer",
+  "rubricVersion": 1,
+  "modelAnswer": "Üretime benzer parametrelerle EXPLAIN (ANALYZE, BUFFERS) alır, tahmini ve gerçek cardinality farklarını incelerim. Filtre, join ve sıralama desenine göre kolon sırası doğru bir bileşik ya da partial index dener; yazma maliyetini ve plan değişimini ölçerek doğrularım.",
+  "expectedSignals": ["EXPLAIN ANALYZE", "Cardinality", "Index sırası"],
+  "redFlags": ["Her kolona index eklemek", "Ölçmeden planner ayarını kapatmak"],
+  "status": "published"
+}

@@ -1,0 +1,15 @@
+{
+  "stableId": "system-boundaries",
+  "version": 1,
+  "prompt": "Yeni bir ürün için mikroservis yerine modüler monolit seçimini nasıl savunursun?",
+  "type": "Sistem tasarımı",
+  "level": "advanced",
+  "skillSlug": "system-design",
+  "technologySlug": null,
+  "rubricStableId": "default-technical-answer",
+  "rubricVersion": 1,
+  "modelAnswer": "Ekip sahipliği, bağımsız ölçek ve deployment gereksinimleri henüz ayrışmıyorsa modüler monolit daha düşük operasyon maliyeti sağlar. Domain sınırlarını modüller ve sözleşmelerle korur, coupling ve deployment metriklerini izler; bağımsızlık ihtiyacı kanıtlandığında ilgili modülü ayırırım.",
+  "expectedSignals": ["Ekip sınırı", "Bağımsız ölçek", "Operasyon maliyeti"],
+  "redFlags": ["Mikroservis her zaman iyidir", "Sınırları tanımlamadan tek proje açmak"],
+  "status": "published"
+}

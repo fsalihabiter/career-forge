@@ -33,6 +33,7 @@ public sealed class SessionService(AppDbContext db)
         }
 
         var query = db.Questions.AsNoTracking()
+            .Where(x => x.Status == PublicationStatus.Published)
             .Where(x => userSkills.Count == 0 || userSkills.Contains(x.SkillId))
             .Where(x => x.TechnologyId == null || technologies.Contains(x.TechnologyId.Value));
         var candidates = await query
@@ -44,8 +45,21 @@ public sealed class SessionService(AppDbContext db)
         {
             var selectedIds = candidates.Select(x => x.Id).ToArray();
             var supplementary = await db.Questions.AsNoTracking()
+                .Where(x => x.Status == PublicationStatus.Published)
                 .Where(x => !selectedIds.Contains(x.Id))
                 .Where(x => x.TechnologyId == null || technologies.Contains(x.TechnologyId.Value))
+                .OrderBy(x => recentIds.Contains(x.Id))
+                .ThenBy(x => x.Level)
+                .Take(count - candidates.Count)
+                .ToListAsync(ct);
+            candidates.AddRange(supplementary);
+        }
+        if (candidates.Count < count)
+        {
+            var selectedIds = candidates.Select(x => x.Id).ToArray();
+            var supplementary = await db.Questions.AsNoTracking()
+                .Where(x => x.Status == PublicationStatus.Published)
+                .Where(x => !selectedIds.Contains(x.Id))
                 .OrderBy(x => recentIds.Contains(x.Id))
                 .ThenBy(x => x.Level)
                 .Take(count - candidates.Count)

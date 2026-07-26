@@ -25,7 +25,7 @@ public sealed class ContentImportTests(CareerForgeApiFactory factory)
         var second = await importer.ImportAsync(contentPath);
 
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.Equal(new ContentImportReport(1, 3, 2, 1), first);
+        Assert.Equal(new ContentImportReport(1, 3, 2, 10), first);
         Assert.Equal(first, second);
         var expectedStableIds = new[] { "middleware-order", "postgres-query-plan", "react-request-race" };
         var lessons = await db.Lessons.Include(x => x.Sections)
@@ -50,7 +50,18 @@ public sealed class ContentImportTests(CareerForgeApiFactory factory)
         Assert.Equal(2, patternList!.Length);
         Assert.Equal("Dağıtık sistem", outbox!.Category);
         Assert.Equal(4, outbox.Sections.Length);
-        Assert.Equal(1, await db.Questions.CountAsync(x => x.StableId == "api-idempotency"));
+        var questions = await db.Questions
+            .Where(x => x.Status == PublicationStatus.Published)
+            .ToListAsync();
+        Assert.Equal(10, questions.Count);
+        Assert.Equal(10, questions.Select(x => x.StableId).Distinct().Count());
+        Assert.All(questions, question =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(question.ModelAnswer));
+            Assert.NotEqual("[]", question.ExpectedSignalsJson);
+            Assert.NotEqual("[]", question.RedFlagsJson);
+            Assert.NotNull(question.RubricId);
+        });
     }
 
     [Fact]

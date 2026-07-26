@@ -1,0 +1,15 @@
+{
+  "stableId": "react-race",
+  "version": 1,
+  "prompt": "Filtre hızla değiştiğinde eski HTTP cevabı yeni ekranı eziyor. React'te nasıl önlersin?",
+  "type": "Debug",
+  "level": "intermediate",
+  "skillSlug": "frontend",
+  "technologySlug": "react",
+  "rubricStableId": "default-technical-answer",
+  "rubricVersion": 1,
+  "modelAnswer": "Effect cleanup içinde önceki isteği AbortController ile iptal eder veya her isteğe kimlik verip yalnızca güncel kimliğin sonucunu state'e yazarım. Loading ve error durumlarını aynı kimliğe bağlar, istekleri ters sırada tamamlayan bir testle eski cevabın ekranı değiştirmediğini doğrularım.",
+  "expectedSignals": ["AbortController", "Request identity", "Loading/error state"],
+  "redFlags": ["Timeout eklemek", "Sadece butonu devre dışı bırakmak"],
+  "status": "published"
+}

@@ -1,0 +1,15 @@
+{
+  "stableId": "debug-no-log",
+  "version": 1,
+  "prompt": "Bir API bazen 500 dönüyor ama loglarda hata yok. İlk 15 dakikada hangi kanıtları toplarsın?",
+  "type": "Incident",
+  "level": "advanced",
+  "skillSlug": "debugging",
+  "technologySlug": null,
+  "rubricStableId": "default-technical-answer",
+  "rubricVersion": 1,
+  "modelAnswer": "Önce correlation ID ile başarısız isteği uçtan uca izler, exception pipeline'ının hatayı kaydedip kaydetmediğini kontrol ederim. Ardından son deployment ile hata oranını karşılaştırır, trace üzerinden yavaş veya hatalı downstream çağrıyı bulur ve hipotezi tek değişkenli bir deneyle doğrularım.",
+  "expectedSignals": ["Correlation ID", "Downstream süreleri", "Deployment karşılaştırması"],
+  "redFlags": ["Rastgele log açmak", "Kanıt toplamadan servisi yeniden başlatmak"],
+  "status": "published"
+}

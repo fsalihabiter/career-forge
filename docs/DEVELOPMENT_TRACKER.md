@@ -7,10 +7,10 @@ işlenir.
 ## Şu anki durum
 
 - Son güncelleme: 2026-07-26
-- Aktif faz: Faz 2 — Öğrenme ve içerik MVP'si
+- Aktif faz: Faz 3 — İlerleme ve tekrar
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-208 — En az 10 soruluk doğrulanmış oturum`
-- Son tamamlanan iş: `CF-207 — Rubric tabanlı değerlendirme`
+- Sıradaki iş: `CF-301 — Ders ilerleme kaydı`
+- Son tamamlanan iş: `CF-208 — En az 10 soruluk doğrulanmış oturum`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -20,7 +20,7 @@ işlenir.
 | --- | ---: | ---: | --- |
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
-| 2. Öğrenme ve içerik MVP'si | 7 | 8 | Devam ediyor |
+| 2. Öğrenme ve içerik MVP'si | 8 | 8 | Tamamlandı |
 | 3. İlerleme ve tekrar | 0 | 6 | Bekliyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
@@ -62,13 +62,13 @@ işlenir.
 | CF-205 | Tamamlandı | İlk üç örnek ders | CF-202 | Middleware dahil üç tam ders içerir |
 | CF-206 | Tamamlandı | Pattern rehberi | CF-202 | Strategy ve Outbox dahil ilk pattern sayfaları hazırdır |
 | CF-207 | Tamamlandı | Rubric tabanlı değerlendirme | CF-201 | Boyut bazlı puan ve açıklanabilir geri bildirim üretir |
-| CF-208 | Sıradaki | En az 10 soruluk doğrulanmış oturum | CF-207 | Güçlü sinyal, kırmızı bayrak ve model cevapları içerir |
+| CF-208 | Tamamlandı | En az 10 soruluk doğrulanmış oturum | CF-207 | Güçlü sinyal, kırmızı bayrak ve model cevapları içerir |
 
 ### Faz 3 — İlerleme ve tekrar
 
 | ID | Durum | İş | Bağımlılık | Kabul özeti |
 | --- | --- | --- | --- | --- |
-| CF-301 | Bekliyor | Ders ilerleme kaydı | CF-204 | Kullanıcı kaldığı yerden farklı cihazda devam eder |
+| CF-301 | Sıradaki | Ders ilerleme kaydı | CF-204 | Kullanıcı kaldığı yerden farklı cihazda devam eder |
 | CF-302 | Bekliyor | Beceri bazlı gelişim hesabı | CF-207 | Ölçülen seviye ve güven skoru geçmişi korunur |
 | CF-303 | Bekliyor | Tekrar listesi | CF-302 | Soru ekleme, çıkarma ve filtreleme yapılır |
 | CF-304 | Bekliyor | Spaced repetition planı | CF-303 | Sonraki tekrar tarihi hesaplanır |
@@ -389,6 +389,33 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
 - Güncel container'larda migration uygulandı; gerçek PostgreSQL oturumunda üç cevap
   değerlendirilip sonuç API'sinden dört boyut, toplam sistem puanı ve ayrı öz puan
   döndüğü doğrulandı.
+
+### 2026-07-26 — CF-208 başlatıldı
+
+- On soruluk yayınlanmış soru bankasını Git içeriklerine taşıma ve profil
+  filtrelerinden bağımsız olarak istenen oturum boyutunu güvenle tamamlama çalışmasına
+  başlandı.
+
+### 2026-07-26 — CF-208 tamamlandı
+
+- Dokuz yeni soru eklenerek Git tabanlı yayınlanmış soru bankası 10 soruya çıkarıldı;
+  her soru kapsamlı model cevap, en az üç güçlü sinyal ve birden fazla kırmızı bayrak
+  taşıyor.
+- Soru tanımları kod içindeki seed verisinden kaldırıldı; test ve üretim başlangıcı
+  katalog seed'inden sonra aynı sürümlü içerik importunu kullanacak biçimde hizalandı.
+- İçerik doğrulaması model cevabı, güçlü sinyal ve kırmızı bayrak alanlarını zorunlu
+  kılarak eksik değerlendirme içeriğinin yayınlanmasını engelliyor.
+- Oturum seçimi yalnızca yayınlanmış soruları kullanıyor; profil tercihleri önce
+  uygulanıyor, banka yeterliyse istenen sayı farklı teknolojilerden güvenle
+  tamamlanıyor.
+- On soruluk mülakatın benzersiz ve dengeli seçimi, aktifken cevap anahtarlarının
+  gizlenmesi, tamamlanması ve tüm soruların rubric değerlendirmesi integration
+  testiyle doğrulandı.
+- Backend testleri 23/23, frontend testleri 4/4 ve production build başarılıdır;
+  lint yalnızca önceden bilinen engelleyici olmayan `useEffect` uyarısını üretmektedir.
+- Gerçek PostgreSQL smoke testinde profilsiz kullanıcıya altı soru türüne yayılan
+  10 soru verildi; model cevapların aktifken gizli, tamamlandıktan sonra 10/10
+  görünür ve dört boyutta değerlendirilmiş olduğu doğrulandı.
 
 ## Karar günlüğü
 
