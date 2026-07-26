@@ -66,6 +66,8 @@ type LessonDetail = LessonSummary & {
   prerequisites: string[]
   sections: LessonSection[]
 }
+type PatternSummary = LessonSummary & { category: string }
+type PatternDetail = LessonDetail & { category: string }
 
 const levelLabels: Record<string, string> = {
   beginner: 'Başlangıç',
@@ -113,6 +115,8 @@ function App() {
   const [learningTechnologies, setLearningTechnologies] = useState<LearningTechnology[]>([])
   const [lessons, setLessons] = useState<LessonSummary[]>([])
   const [lesson, setLesson] = useState<LessonDetail | null>(null)
+  const [patterns, setPatterns] = useState<PatternSummary[]>([])
+  const [guideMode, setGuideMode] = useState<'lessons' | 'patterns'>('lessons')
   const [learningTechnology, setLearningTechnology] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -173,15 +177,31 @@ function App() {
     setMessage('')
     try {
       const query = technology ? `?technology=${encodeURIComponent(technology)}` : ''
-      const [technologies, lessonList] = await Promise.all([
+      const [technologies, lessonList, patternList] = await Promise.all([
         api<LearningTechnology[]>('/learning/technologies'),
         api<LessonSummary[]>(`/learning/lessons${query}`),
+        api<PatternSummary[]>('/learning/patterns'),
       ])
       setLearningTechnologies(technologies)
       setLessons(lessonList)
+      setPatterns(patternList)
       setLearningTechnology(technology)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Öğrenme rehberi yüklenemedi.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const openPattern = async (slug: string) => {
+    setLoading(true)
+    setMessage('')
+    try {
+      setLesson(await api<PatternDetail>(`/learning/patterns/${slug}`))
+      setScreen('lesson')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Pattern açılamadı.')
     } finally {
       setLoading(false)
     }
@@ -243,10 +263,14 @@ function App() {
           <LearningGuide
             technologies={learningTechnologies}
             lessons={lessons}
+            patterns={patterns}
+            mode={guideMode}
             selectedTechnology={learningTechnology}
             loading={loading}
+            onMode={setGuideMode}
             onTechnology={openLearning}
             onLesson={openLesson}
+            onPattern={openPattern}
           />
         )}
         {screen === 'lesson' && lesson && (
@@ -268,13 +292,17 @@ function App() {
   )
 }
 
-function LearningGuide({ technologies, lessons, selectedTechnology, loading, onTechnology, onLesson }: {
+function LearningGuide({ technologies, lessons, patterns, mode, selectedTechnology, loading, onMode, onTechnology, onLesson, onPattern }: {
   technologies: LearningTechnology[]
   lessons: LessonSummary[]
+  patterns: PatternSummary[]
+  mode: 'lessons' | 'patterns'
   selectedTechnology: string
   loading: boolean
+  onMode: (mode: 'lessons' | 'patterns') => void
   onTechnology: (slug?: string) => void
   onLesson: (slug: string) => void
+  onPattern: (slug: string) => void
 }) {
   const totalLessons = technologies.reduce((sum, technology) => sum + technology.lessonCount, 0)
   return (
@@ -286,9 +314,13 @@ function LearningGuide({ technologies, lessons, selectedTechnology, loading, onT
         </div>
         <p>Her ders, mülakatta ezberlenecek bir cevap yerine gerçek bir mühendislik kararını parçalar: bağlam, uygulama ve trade-off.</p>
       </header>
+      <div className="guide-switch" role="tablist" aria-label="Rehber türü">
+        <button role="tab" aria-selected={mode === 'lessons'} onClick={() => onMode('lessons')}>Dersler</button>
+        <button role="tab" aria-selected={mode === 'patterns'} onClick={() => onMode('patterns')}>Patternler</button>
+      </div>
 
       <div className="guide-layout">
-        <aside className="guide-filter" aria-label="Teknoloji filtresi">
+        {mode === 'lessons' ? <aside className="guide-filter" aria-label="Teknoloji filtresi">
           <div className="filter-heading"><span>TEKNOLOJİ</span><b>{totalLessons} ders</b></div>
           <button className={!selectedTechnology ? 'active' : ''} onClick={() => onTechnology('')}>
             <i className="all-tech-mark" />Tüm dersler
@@ -304,23 +336,23 @@ function LearningGuide({ technologies, lessons, selectedTechnology, loading, onT
               <span>{technology.lessonCount}</span>
             </button>
           ))}
-        </aside>
+        </aside> : <aside className="pattern-note"><span>PATTERN HARİTASI</span><p>Bir pattern’i adına göre değil, çözdüğü gerilim ve getirdiği operasyon maliyetiyle değerlendir.</p></aside>}
 
         <div className="lesson-catalog" aria-live="polite" aria-busy={loading}>
           <div className="catalog-heading">
             <div>
               <span>{selectedTechnology ? technologies.find(x => x.slug === selectedTechnology)?.name : 'Tüm teknolojiler'}</span>
-              <h2>Ders kataloğu</h2>
+              <h2>{mode === 'lessons' ? 'Ders kataloğu' : 'Pattern kataloğu'}</h2>
             </div>
-            <b>{lessons.length.toString().padStart(2, '0')}</b>
+            <b>{(mode === 'lessons' ? lessons.length : patterns.length).toString().padStart(2, '0')}</b>
           </div>
           {loading ? (
             <div className="guide-state"><span className="loading-line" />Dersler yükleniyor…</div>
-          ) : lessons.length === 0 ? (
+          ) : (mode === 'lessons' ? lessons : patterns).length === 0 ? (
             <div className="guide-state"><b>Bu alanda yayınlanmış ders yok.</b><p>Yeni içerikler hazır olduğunda burada görünecek.</p></div>
           ) : (
             <div className="lesson-grid">
-              {lessons.map((item, index) => (
+              {(mode === 'lessons' ? lessons : patterns).map((item, index) => (
                 <article className="lesson-card" key={`${item.stableId}-${item.version}`}>
                   <div className="lesson-index">{String(index + 1).padStart(2, '0')}</div>
                   <div className="lesson-card-body">
@@ -328,11 +360,12 @@ function LearningGuide({ technologies, lessons, selectedTechnology, loading, onT
                       <span>{levelLabels[item.level] ?? item.level}</span>
                       <span>{item.estimatedMinutes} dk</span>
                       {item.technology && <span>{item.technology.name}</span>}
+                      {mode === 'patterns' && <span>{(item as PatternSummary).category}</span>}
                     </div>
                     <h3>{item.title}</h3>
                     <p>{item.summary}</p>
-                    <button className="lesson-link" onClick={() => onLesson(item.slug)} disabled={loading}>
-                      Dersi aç <span aria-hidden="true">→</span>
+                    <button className="lesson-link" onClick={() => mode === 'lessons' ? onLesson(item.slug) : onPattern(item.slug)} disabled={loading}>
+                      {mode === 'lessons' ? 'Dersi aç' : 'Pattern’i aç'} <span aria-hidden="true">→</span>
                     </button>
                   </div>
                 </article>

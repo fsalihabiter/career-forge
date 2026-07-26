@@ -156,6 +156,25 @@ public static class LearningGuideEndpoints
                 .SingleOrDefaultAsync(ct);
             return lesson is null ? Results.NotFound() : Results.Ok(ToDetail(lesson));
         });
+
+        learning.MapGet("/patterns", async (AppDbContext db, CancellationToken ct) =>
+        {
+            var patterns = await LatestPublishedPatterns(db)
+                .Include(x => x.Technology)
+                .OrderBy(x => x.Category).ThenBy(x => x.Title)
+                .ToListAsync(ct);
+            return Results.Ok(patterns.Select(ToPatternSummary));
+        });
+
+        learning.MapGet("/patterns/{slug}", async (string slug, AppDbContext db, CancellationToken ct) =>
+        {
+            var pattern = await LatestPublishedPatterns(db)
+                .Where(x => x.Slug == slug)
+                .Include(x => x.Technology)
+                .Include(x => x.Sections)
+                .SingleOrDefaultAsync(ct);
+            return pattern is null ? Results.NotFound() : Results.Ok(ToPatternDetail(pattern));
+        });
     }
 
     private static IQueryable<Lesson> LatestPublishedLessons(AppDbContext db)
@@ -165,6 +184,14 @@ public static class LearningGuideEndpoints
                 newer.StableId == lesson.StableId
                 && newer.Status == PublicationStatus.Published
                 && newer.Version > lesson.Version));
+
+    private static IQueryable<PatternGuide> LatestPublishedPatterns(AppDbContext db)
+        => db.PatternGuides.Where(pattern =>
+            pattern.Status == PublicationStatus.Published
+            && !db.PatternGuides.Any(newer =>
+                newer.StableId == pattern.StableId
+                && newer.Status == PublicationStatus.Published
+                && newer.Version > pattern.Version));
 
     private static LessonSummary ToSummary(Lesson lesson)
         => new(
@@ -190,6 +217,19 @@ public static class LearningGuideEndpoints
             DeserializeArray(lesson.ObjectivesJson),
             DeserializeArray(lesson.PrerequisitesJson),
             lesson.Sections.OrderBy(x => x.Order)
+                .Select(x => new LessonSection(x.Key, x.Title, x.Order, x.BodyMarkdown, x.CodeLanguage, x.CodeSample))
+                .ToArray());
+
+    private static PatternSummary ToPatternSummary(PatternGuide pattern)
+        => new(pattern.StableId, pattern.Version, pattern.Slug, pattern.Title, pattern.Summary,
+            pattern.Category, pattern.Level.ToString().ToLowerInvariant(), pattern.EstimatedMinutes,
+            ToTechnology(pattern.Technology));
+
+    private static PatternDetail ToPatternDetail(PatternGuide pattern)
+        => new(pattern.StableId, pattern.Version, pattern.Slug, pattern.Title, pattern.Summary,
+            pattern.Category, pattern.Level.ToString().ToLowerInvariant(), pattern.EstimatedMinutes,
+            ToTechnology(pattern.Technology), DeserializeArray(pattern.ObjectivesJson),
+            DeserializeArray(pattern.PrerequisitesJson), pattern.Sections.OrderBy(x => x.Order)
                 .Select(x => new LessonSection(x.Key, x.Title, x.Order, x.BodyMarkdown, x.CodeLanguage, x.CodeSample))
                 .ToArray());
 

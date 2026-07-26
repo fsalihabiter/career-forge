@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-26
 - Aktif faz: Faz 2 — Öğrenme ve içerik MVP'si
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-206 — Pattern rehberi`
-- Son tamamlanan iş: `CF-205 — İlk üç örnek ders`
+- Sıradaki iş: `CF-207 — Rubric tabanlı değerlendirme`
+- Son tamamlanan iş: `CF-206 — Pattern rehberi`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -20,7 +20,7 @@ işlenir.
 | --- | ---: | ---: | --- |
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
-| 2. Öğrenme ve içerik MVP'si | 5 | 8 | Devam ediyor |
+| 2. Öğrenme ve içerik MVP'si | 6 | 8 | Devam ediyor |
 | 3. İlerleme ve tekrar | 0 | 6 | Bekliyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
@@ -60,8 +60,8 @@ işlenir.
 | CF-203 | Tamamlandı | Öğrenme rehberi API'si | CF-202 | Teknoloji, ders listesi ve ders detayı endpoint'leri hazırdır |
 | CF-204 | Tamamlandı | Öğrenme rehberi arayüzü | CF-203 | Liste ve ders okuma akışı responsive ve erişilebilirdir |
 | CF-205 | Tamamlandı | İlk üç örnek ders | CF-202 | Middleware dahil üç tam ders içerir |
-| CF-206 | Sıradaki | Pattern rehberi | CF-202 | Strategy ve Outbox dahil ilk pattern sayfaları hazırdır |
-| CF-207 | Bekliyor | Rubric tabanlı değerlendirme | CF-201 | Boyut bazlı puan ve açıklanabilir geri bildirim üretir |
+| CF-206 | Tamamlandı | Pattern rehberi | CF-202 | Strategy ve Outbox dahil ilk pattern sayfaları hazırdır |
+| CF-207 | Sıradaki | Rubric tabanlı değerlendirme | CF-201 | Boyut bazlı puan ve açıklanabilir geri bildirim üretir |
 | CF-208 | Bekliyor | En az 10 soruluk doğrulanmış oturum | CF-207 | Güçlü sinyal, kırmızı bayrak ve model cevapları içerir |
 
 ### Faz 3 — İlerleme ve tekrar
@@ -348,6 +348,25 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
   importer akışıyla giderildi ve regresyon testi eklendi.
 - Release build hatasız, backend testleri 20/20 başarılı; container importer'ı üç
   dersi yükledi ve API middleware detayında dört bölümü doğru sırada döndürdü.
+
+### 2026-07-26 — CF-206 başlatıldı
+
+- Strategy ve Transactional Outbox pattern içeriklerini API ve mevcut öğrenme
+  rehberi deneyimi içinde yayınlama çalışmasına başlandı.
+
+### 2026-07-26 — CF-206 tamamlandı
+
+- Strategy ve Transactional Outbox patternleri üç öğrenme hedefi, dört sıralı bölüm
+  ve uygulanabilir C#, SQL veya yapılandırma örnekleriyle tamamlanıp yayınlandı.
+- Pattern liste ve detay endpoint'leri yalnızca stable ID başına son yayınlanmış
+  sürümü döndürecek şekilde eklendi.
+- Öğrenme rehberi, dersler ve patternler arasında erişilebilir sekmelerle geçiş
+  yapan ve ortak odaklı okuyucuyu kullanan tek çalışma alanına dönüştürüldü.
+- Release build hatasız, backend testleri 20/20, frontend component testleri 4/4
+  başarılıdır; lint yalnızca önceden bilinen engelleyici olmayan `useEffect` uyarısını
+  üretmektedir.
+- Güncel container'lar üzerinde PostgreSQL'e iki pattern yüklendiği ve Outbox
+  detayının dört bölümü doğru biçimde sunduğu gerçek API isteğiyle doğrulandı.
 
 ## Karar günlüğü
 

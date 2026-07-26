@@ -1,0 +1,48 @@
+{
+  "stableId": "transactional-outbox",
+  "version": 1,
+  "slug": "transactional-outbox",
+  "title": "Transactional Outbox",
+  "summary": "Veritabanı değişikliği ile mesaj yayınını aynı yerel transaction'a bağlayarak kayıp olay riskini azalt.",
+  "technologySlug": "postgresql",
+  "level": "advanced",
+  "estimatedMinutes": 22,
+  "status": "published",
+  "objectives": ["Dual-write problemini açıklamak", "Outbox kaydını domain değişikliğiyle atomik yazmak", "Publisher ve consumer idempotency sınırlarını ayırmak"],
+  "prerequisites": ["Transaction temelleri", "Mesaj kuyruğu ve eventual consistency"],
+  "category": "Dağıtık sistem",
+  "sections": [
+    {
+      "key": "dual-write",
+      "title": "İki sisteme tek atomiklik sözü verme",
+      "order": 1,
+      "bodyMarkdown": "Servis önce veritabanını commit edip sonra broker'a mesaj gönderirse, iki adım arasındaki çökme veriyi kaydeder fakat olayı kaybeder. Önce mesaj gönderilirse ters hata, henüz commit edilmemiş veri için olay üretir.\n\nOutbox, iş değişikliğiyle yayınlanacak mesajı aynı veritabanı transaction'ında yazar; broker yayını daha sonra güvenilir biçimde yapılır.",
+      "codeLanguage": "sql",
+      "codeSample": "BEGIN;\nUPDATE orders SET status = 'paid' WHERE id = :id;\nINSERT INTO outbox_messages(id, type, payload) VALUES (:eventId, 'OrderPaid', :payload);\nCOMMIT;"
+    },
+    {
+      "key": "publisher",
+      "title": "Outbox publisher tekrar deneyebilir",
+      "order": 2,
+      "bodyMarkdown": "Arka plan worker yayınlanmamış kayıtları kilitleyerek okur, broker'a gönderir ve başarı zamanını kaydeder. Yayın ile işaretleme arasındaki çökme aynı mesajın yeniden gönderilmesine yol açabilir.\n\nBu nedenle outbox çoğunlukla at-least-once teslimat sağlar; tam bir exactly-once garantisi vermez.",
+      "codeLanguage": "sql",
+      "codeSample": "SELECT * FROM outbox_messages\nWHERE published_at IS NULL\nORDER BY created_at\nFOR UPDATE SKIP LOCKED\nLIMIT 100;"
+    },
+    {
+      "key": "consumer",
+      "title": "Duplicate korumasını consumer'da tamamla",
+      "order": 3,
+      "bodyMarkdown": "Her olaya kararlı bir event ID ver. Consumer iş etkisiyle işlenmiş event kaydını aynı transaction içinde yazar ve event ID üzerinde unique constraint kullanır.\n\nMesajı yalnızca bellekte hatırlamak restart sonrasında koruma sağlamaz; idempotency iş etkisinin kalıcı sınırında kurulmalıdır.",
+      "codeLanguage": "sql",
+      "codeSample": "INSERT INTO processed_messages(consumer, event_id)\nVALUES ('billing', :eventId)\nON CONFLICT DO NOTHING;"
+    },
+    {
+      "key": "operations",
+      "title": "Gecikmeyi ve birikmeyi ölç",
+      "order": 4,
+      "bodyMarkdown": "Outbox tablo büyüklüğü, en eski yayınlanmamış kaydın yaşı, retry sayısı ve dead-letter miktarı operasyon sinyalleridir. Temizleme politikası yayınlanmış kayıtları denetim ihtiyacına uygun süre sonunda kaldırmalıdır.\n\nPattern seçimi, tutarlılık ihtiyacını çözerken ek worker, tablo büyümesi ve eventual consistency maliyetlerini de açıkça kabul etmelidir.",
+      "codeLanguage": "sql",
+      "codeSample": "SELECT now() - min(created_at) AS oldest_pending\nFROM outbox_messages\nWHERE published_at IS NULL;"
+    }
+  ]
+}

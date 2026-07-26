@@ -160,7 +160,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue); backgroun
 .guide-hero { display: grid; grid-template-columns: 1.25fr .75fr; gap: 64px; align-items: end; margin-bottom: 48px; }
 .guide-hero h1 { font-size: clamp(44px,6vw,76px); line-height: .95; margin: 14px 0 0; }
 .guide-hero > p { border-left: 3px solid var(--cyan); padding-left: 20px; color: var(--muted); line-height: 1.7; font-size: 13px; margin: 0; }
+.guide-switch { display: flex; gap: 2px; margin: -20px 0 30px; border-bottom: 1px solid var(--line); }
+.guide-switch button { border: 0; background: transparent; padding: 12px 18px; color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 700; }
+.guide-switch button[aria-selected="true"] { color: white; background: var(--ink); }
 .guide-layout { display: grid; grid-template-columns: 220px 1fr; gap: 42px; align-items: start; }
+.pattern-note { border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); padding: 15px 2px 20px; }
+.pattern-note span { font: 9px 'DM Mono'; color: var(--blue); letter-spacing: 1px; }
+.pattern-note p { color: var(--muted); font-size: 11px; line-height: 1.65; }
 .guide-filter { position: sticky; top: 104px; display: grid; border-top: 2px solid var(--ink); }
 .filter-heading { display: flex; justify-content: space-between; padding: 13px 2px; }
 .filter-heading span, .reader-rail small { font: 9px 'DM Mono'; letter-spacing: 1px; color: var(--muted); }

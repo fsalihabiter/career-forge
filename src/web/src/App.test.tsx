@@ -189,9 +189,12 @@ describe('App', () => {
       estimatedMinutes: 12,
       technology: technologies[0],
     }
+    const pattern = { ...lesson, stableId: 'outbox', slug: 'outbox', title: 'Transactional Outbox', category: 'Dağıtık sistem' }
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = urlOf(input)
       if (url.endsWith('/learning/technologies')) return response(learningTechnologies)
+      if (url.endsWith('/learning/patterns/outbox')) return response({ ...pattern, objectives: ['Dual-write problemini açıklamak'], prerequisites: [], sections: [{ key: 'atomicity', title: 'Atomiklik sınırı', order: 1, bodyMarkdown: 'Aynı transaction içinde yaz.', codeLanguage: 'sql', codeSample: 'INSERT INTO outbox_messages ...;' }] })
+      if (url.endsWith('/learning/patterns')) return response([pattern])
       if (url.includes('/learning/lessons?technology=dotnet')) return response([lesson])
       if (url.endsWith('/learning/lessons/middleware-order')) {
         return response({
@@ -226,5 +229,12 @@ describe('App', () => {
     expect(screen.getByRole('navigation', { name: 'Ders bölümleri' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Pipeline nasıl işler?' })).toBeInTheDocument()
     expect(screen.getByText('app.UseAuthentication();')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Rehber' }))
+    await user.click(await screen.findByRole('tab', { name: 'Patternler' }))
+    expect(await screen.findByText('Transactional Outbox')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Pattern’i aç/ }))
+    expect(await screen.findByRole('heading', { name: 'Transactional Outbox' })).toBeInTheDocument()
+    expect(screen.getByText('INSERT INTO outbox_messages ...;')).toBeInTheDocument()
   })
 })

@@ -3,22 +3,46 @@
   "version": 1,
   "slug": "strategy-pattern",
   "title": "Strategy Pattern",
-  "summary": "Değişebilen bir algoritmayı çağıran koddan ayır.",
+  "summary": "Değişebilen bir iş kuralını çağıran koddan ayır ve seçimi açık bir bağlam kararına dönüştür.",
   "technologySlug": null,
   "level": "intermediate",
-  "estimatedMinutes": 10,
-  "status": "draft",
-  "objectives": ["Strategy kullanım sınırını tanımak"],
+  "estimatedMinutes": 16,
+  "status": "published",
+  "objectives": ["Strategy kullanım sınırını tanımak", "Koşul zincirini açık politikalara ayırmak", "Gereksiz pattern kullanımını fark etmek"],
   "prerequisites": ["Interface ve composition bilgisi"],
   "category": "Davranışsal",
   "sections": [
     {
       "key": "intent",
-      "title": "Amaç",
+      "title": "Değişen davranışı izole et",
       "order": 1,
-      "bodyMarkdown": "Strategy, aynı işi yapan değiştirilebilir algoritmaları ortak bir sözleşme arkasında toplar.",
+      "bodyMarkdown": "Strategy, aynı amacı farklı kurallarla gerçekleştiren davranışları ortak bir sözleşme arkasında toplar. Çağıran kod algoritmanın ayrıntısını değil, hangi bağlamda hangisinin seçileceğini bilir.\n\nİndirim, sıralama veya teslimat hesabı gibi kurallar bağımsız değişiyor ve ayrı test edilmek isteniyorsa güçlü bir adaydır.",
+      "codeLanguage": "csharp",
+      "codeSample": "public interface IPricingStrategy\n{\n    decimal Calculate(Order order);\n}"
+    },
+    {
+      "key": "selection",
+      "title": "Seçimi composition root'a taşı",
+      "order": 2,
+      "bodyMarkdown": "Uzun bir if/switch zincirini yalnızca başka bir sınıfa taşımak yeterli değildir. Strategy seçimi bağlam verisine dayanmalı ve handler'lar bağımlılık enjeksiyonu üzerinden açıkça kurulmalıdır.\n\nSeçim kuralı sık değişiyorsa ayrı bir resolver kullanılabilir; değişmiyorsa küçük bir dictionary çoğu zaman yeterlidir.",
+      "codeLanguage": "csharp",
+      "codeSample": "var strategy = strategies.Single(x => x.Supports(order.CustomerTier));\nvar total = strategy.Calculate(order);"
+    },
+    {
+      "key": "tradeoff",
+      "title": "Bedelini görünür tut",
+      "order": 3,
+      "bodyMarkdown": "Strategy yeni interface, sınıf ve seçim mekanizması getirir. Yalnızca iki satırlık ve değişmeyen bir koşul için bu maliyet okunabilirliği düşürebilir.\n\nKullanım kararı; davranışların bağımsız değişmesi, ayrı test ihtiyacı ve runtime seçimi gibi somut baskılarla savunulmalıdır.",
       "codeLanguage": null,
       "codeSample": null
+    },
+    {
+      "key": "testing",
+      "title": "Her politikayı sözleşmeyle test et",
+      "order": 4,
+      "bodyMarkdown": "Her strategy aynı girdi sözleşmesine uymalı, sınır değerleri ve parasal yuvarlama davranışı ayrı test edilmelidir. Resolver testi ise doğru bağlamın doğru strategy'yi seçtiğini kanıtlar.\n\nGüçlü mülakat cevabı pattern adını değil, değişim eksenini ve eklenen soyutlamanın bedelini açıklar.",
+      "codeLanguage": "csharp",
+      "codeSample": "Assert.Equal(90m, vipStrategy.Calculate(new Order { Subtotal = 100m }));"
     }
   ]
 }

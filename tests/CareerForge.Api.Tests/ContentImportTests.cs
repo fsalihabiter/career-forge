@@ -1,10 +1,12 @@
 using CareerForge.Api.Content;
+using CareerForge.Api.Contracts;
 using CareerForge.Api.Data;
 using CareerForge.Api.Models;
 using CareerForge.Api.Tests.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net.Http.Json;
 
 namespace CareerForge.Api.Tests;
 
@@ -23,7 +25,7 @@ public sealed class ContentImportTests(CareerForgeApiFactory factory)
         var second = await importer.ImportAsync(contentPath);
 
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.Equal(new ContentImportReport(1, 3, 1, 1), first);
+        Assert.Equal(new ContentImportReport(1, 3, 2, 1), first);
         Assert.Equal(first, second);
         var expectedStableIds = new[] { "middleware-order", "postgres-query-plan", "react-request-race" };
         var lessons = await db.Lessons.Include(x => x.Sections)
@@ -38,7 +40,16 @@ public sealed class ContentImportTests(CareerForgeApiFactory factory)
             Assert.NotNull(lesson.PublishedAt);
         });
         Assert.Contains(lessons, x => x.StableId == "middleware-order");
-        Assert.Equal(1, await db.PatternGuides.CountAsync(x => x.StableId == "strategy-pattern"));
+        var patterns = await db.PatternGuides.Include(x => x.Sections)
+            .Where(x => x.Status == PublicationStatus.Published).ToListAsync();
+        Assert.Equal(2, patterns.Count);
+        Assert.All(patterns, pattern => Assert.Equal(4, pattern.Sections.Count));
+        var client = factory.CreateClient();
+        var patternList = await client.GetFromJsonAsync<PatternSummary[]>("/api/learning/patterns");
+        var outbox = await client.GetFromJsonAsync<PatternDetail>("/api/learning/patterns/transactional-outbox");
+        Assert.Equal(2, patternList!.Length);
+        Assert.Equal("Dağıtık sistem", outbox!.Category);
+        Assert.Equal(4, outbox.Sections.Length);
         Assert.Equal(1, await db.Questions.CountAsync(x => x.StableId == "api-idempotency"));
     }
 

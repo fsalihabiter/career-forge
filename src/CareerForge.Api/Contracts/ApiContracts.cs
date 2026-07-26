@@ -70,3 +70,28 @@ public sealed record LessonDetail(
     string[] Objectives,
     string[] Prerequisites,
     LessonSection[] Sections);
+
+public sealed record PatternSummary(
+    string StableId,
+    int Version,
+    string Slug,
+    string Title,
+    string Summary,
+    string Category,
+    string Level,
+    int EstimatedMinutes,
+    CatalogTechnology? Technology);
+
+public sealed record PatternDetail(
+    string StableId,
+    int Version,
+    string Slug,
+    string Title,
+    string Summary,
+    string Category,
+    string Level,
+    int EstimatedMinutes,
+    CatalogTechnology? Technology,
+    string[] Objectives,
+    string[] Prerequisites,
+    LessonSection[] Sections);
