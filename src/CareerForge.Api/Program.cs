@@ -65,28 +65,31 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<PlanningService>();
 builder.Services.AddScoped<SessionService>();
 
-var resource = ResourceBuilder.CreateDefault().AddService("careerforge-api");
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(r => r.AddService("careerforge-api"))
-    .WithTracing(tracing => tracing
-        .AddAspNetCoreInstrumentation(options =>
-        {
-            options.RecordException = true;
-            options.Filter = context => !context.Request.Path.StartsWithSegments("/health");
-        })
-        .AddHttpClientInstrumentation()
-        .AddOtlpExporter())
-    .WithMetrics(metrics => metrics
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddRuntimeInstrumentation()
-        .AddOtlpExporter());
-builder.Logging.AddOpenTelemetry(options =>
+if (!builder.Environment.IsEnvironment("Testing"))
 {
-    options.SetResourceBuilder(resource);
-    options.IncludeFormattedMessage = true;
-    options.AddOtlpExporter();
-});
+    var resource = ResourceBuilder.CreateDefault().AddService("careerforge-api");
+    builder.Services.AddOpenTelemetry()
+        .ConfigureResource(r => r.AddService("careerforge-api"))
+        .WithTracing(tracing => tracing
+            .AddAspNetCoreInstrumentation(options =>
+            {
+                options.RecordException = true;
+                options.Filter = context => !context.Request.Path.StartsWithSegments("/health");
+            })
+            .AddHttpClientInstrumentation()
+            .AddOtlpExporter())
+        .WithMetrics(metrics => metrics
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddOtlpExporter());
+    builder.Logging.AddOpenTelemetry(options =>
+    {
+        options.SetResourceBuilder(resource);
+        options.IncludeFormattedMessage = true;
+        options.AddOtlpExporter();
+    });
+}
 
 var app = builder.Build();
 app.UseExceptionHandler();

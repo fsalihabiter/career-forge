@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-26
 - Aktif faz: Faz 1 — Çalışan dikey dilimi güvenceye alma
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-102 — API integration test altyapısı`
-- Son tamamlanan iş: `CF-101 — Docker Compose uçtan uca doğrulama`
+- Sıradaki iş: `CF-103 — Kimlik ve yetkilendirme integration testleri`
+- Son tamamlanan iş: `CF-102 — API integration test altyapısı`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -19,7 +19,7 @@ işlenir.
 | Faz | Tamamlandı | Toplam | Durum |
 | --- | ---: | ---: | --- |
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
-| 1. Dikey dilimi güvenceye alma | 2 | 7 | Devam ediyor |
+| 1. Dikey dilimi güvenceye alma | 3 | 7 | Devam ediyor |
 | 2. Öğrenme ve içerik MVP'si | 0 | 8 | Bekliyor |
 | 3. İlerleme ve tekrar | 0 | 6 | Bekliyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
@@ -45,8 +45,8 @@ işlenir.
 | --- | --- | --- | --- | --- |
 | CF-100 | Tamamlandı | Docker build context ve port düzeltmesi | CF-001–006 | Compose tanımları düzeltildi |
 | CF-101 | Tamamlandı | Docker Compose uçtan uca doğrulama | CF-100 | Tüm servisler build olur; health ve web erişilir; temel kullanıcı akışı smoke test edilir |
-| CF-102 | Sıradaki | API integration test altyapısı | CF-101 | WebApplicationFactory/test DB ile kritik akışlar otomatik çalışır |
-| CF-103 | Bekliyor | Kimlik ve yetkilendirme integration testleri | CF-102 | Kayıt/giriş, 401 ve kullanıcı veri izolasyonu test edilir |
+| CF-102 | Tamamlandı | API integration test altyapısı | CF-101 | WebApplicationFactory/test DB ile kritik akışlar otomatik çalışır |
+| CF-103 | Sıradaki | Kimlik ve yetkilendirme integration testleri | CF-102 | Kayıt/giriş, 401 ve kullanıcı veri izolasyonu test edilir |
 | CF-104 | Bekliyor | Oturum akışı integration testleri | CF-102 | Başlat, cevapla, tamamla ve sonuç akışı test edilir |
 | CF-105 | Bekliyor | Frontend test altyapısı | CF-101 | Vitest + React Testing Library yapılandırılır |
 | CF-106 | Bekliyor | Frontend kritik akış testleri | CF-105 | Onboarding ve soru çözme davranışı test edilir |
@@ -154,6 +154,25 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
 - Release yapılandırmasında backend testlerinin 7/7'si geçti.
 - Docker web build'i TypeScript kontrolü ve Vite production build'iyle başarılı
   oldu.
+
+### 2026-07-26 — CF-102 başlatıldı
+
+- `WebApplicationFactory` ve izole test veritabanı tabanlı API integration test
+  altyapısının kurulmasına başlandı.
+
+### 2026-07-26 — CF-102 tamamlandı
+
+- `WebApplicationFactory<Program>` tabanlı test hostu ve her fixture için bellekte
+  yaşayan izole SQLite veritabanı eklendi.
+- Test veritabanı otomatik oluşturulup gerçek `SeedData` ile dolduruluyor.
+- Health endpoint'i ve seed edilmiş teknoloji/yetkinlik kataloglarını doğrulayan
+  iki altyapı integration testi eklendi.
+- Test ortamında OTLP exporter'ları devre dışı bırakılarak dış servise bağımlı
+  beklemeler azaltıldı.
+- SQLite transitif paketindeki yüksek önem dereceli güvenlik uyarısı, güncel
+  `SQLitePCLRaw.bundle_e_sqlite3` sürümü sabitlenerek giderildi; vulnerability
+  taraması temiz geçti.
+- Release test paketinin 9/9 testi başarılıdır.
 
 ## Karar günlüğü
 
