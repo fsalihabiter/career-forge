@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text.Json;
 using CareerForge.Api.Contracts;
 using CareerForge.Api.Data;
 using CareerForge.Api.Models;
@@ -77,6 +78,134 @@ public static class AuthEndpoints
             return Results.Ok(new AuthResponse(token.Token, token.ExpiresAt, displayName, profile?.OnboardingCompleted ?? false));
         });
     }
+}
+
+public static class LearningGuideEndpoints
+{
+    public static void Map(RouteGroupBuilder api)
+    {
+        var learning = api.MapGroup("/learning");
+
+        learning.MapGet("/technologies", async (AppDbContext db, CancellationToken ct) =>
+        {
+            var technologies = await db.Technologies
+                .Where(technology => db.Lessons.Any(lesson =>
+                    lesson.TechnologyId == technology.Id
+                    && lesson.Status == PublicationStatus.Published
+                    && !db.Lessons.Any(newer =>
+                        newer.StableId == lesson.StableId
+                        && newer.Status == PublicationStatus.Published
+                        && newer.Version > lesson.Version)))
+                .OrderBy(x => x.Category)
+                .ThenBy(x => x.Name)
+                .Select(technology => new LearningTechnology(
+                    technology.Id,
+                    technology.Slug,
+                    technology.Name,
+                    technology.Category,
+                    technology.Accent,
+                    db.Lessons.Count(lesson =>
+                        lesson.TechnologyId == technology.Id
+                        && lesson.Status == PublicationStatus.Published
+                        && !db.Lessons.Any(newer =>
+                            newer.StableId == lesson.StableId
+                            && newer.Status == PublicationStatus.Published
+                            && newer.Version > lesson.Version))))
+                .ToListAsync(ct);
+            return Results.Ok(technologies);
+        });
+
+        learning.MapGet("/lessons", async (
+            string? technology,
+            string? level,
+            AppDbContext db,
+            CancellationToken ct) =>
+        {
+            ProficiencyLevel? parsedLevel = null;
+            if (!string.IsNullOrWhiteSpace(level))
+            {
+                if (!Enum.TryParse<ProficiencyLevel>(level, ignoreCase: true, out var value)
+                    || !Enum.IsDefined(value))
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["level"] = ["Geçerli bir yetkinlik seviyesi girilmelidir."]
+                    });
+                parsedLevel = value;
+            }
+
+            var query = LatestPublishedLessons(db);
+            if (!string.IsNullOrWhiteSpace(technology))
+                query = query.Where(x => x.Technology != null && x.Technology.Slug == technology.Trim());
+            if (parsedLevel is not null)
+                query = query.Where(x => x.Level == parsedLevel);
+
+            var lessons = await query
+                .Include(x => x.Technology)
+                .OrderBy(x => x.Level)
+                .ThenBy(x => x.Title)
+                .ToListAsync(ct);
+            return Results.Ok(lessons.Select(ToSummary));
+        });
+
+        learning.MapGet("/lessons/{slug}", async (string slug, AppDbContext db, CancellationToken ct) =>
+        {
+            var lesson = await LatestPublishedLessons(db)
+                .Where(x => x.Slug == slug)
+                .Include(x => x.Technology)
+                .Include(x => x.Sections)
+                .SingleOrDefaultAsync(ct);
+            return lesson is null ? Results.NotFound() : Results.Ok(ToDetail(lesson));
+        });
+    }
+
+    private static IQueryable<Lesson> LatestPublishedLessons(AppDbContext db)
+        => db.Lessons.Where(lesson =>
+            lesson.Status == PublicationStatus.Published
+            && !db.Lessons.Any(newer =>
+                newer.StableId == lesson.StableId
+                && newer.Status == PublicationStatus.Published
+                && newer.Version > lesson.Version));
+
+    private static LessonSummary ToSummary(Lesson lesson)
+        => new(
+            lesson.StableId,
+            lesson.Version,
+            lesson.Slug,
+            lesson.Title,
+            lesson.Summary,
+            lesson.Level.ToString().ToLowerInvariant(),
+            lesson.EstimatedMinutes,
+            ToTechnology(lesson.Technology));
+
+    private static LessonDetail ToDetail(Lesson lesson)
+        => new(
+            lesson.StableId,
+            lesson.Version,
+            lesson.Slug,
+            lesson.Title,
+            lesson.Summary,
+            lesson.Level.ToString().ToLowerInvariant(),
+            lesson.EstimatedMinutes,
+            ToTechnology(lesson.Technology),
+            DeserializeArray(lesson.ObjectivesJson),
+            DeserializeArray(lesson.PrerequisitesJson),
+            lesson.Sections.OrderBy(x => x.Order)
+                .Select(x => new LessonSection(x.Key, x.Title, x.Order, x.BodyMarkdown, x.CodeLanguage, x.CodeSample))
+                .ToArray());
+
+    private static CatalogTechnology? ToTechnology(Technology? technology)
+        => technology is null
+            ? null
+            : new CatalogTechnology(
+                technology.Id,
+                technology.Slug,
+                technology.Name,
+                technology.Category,
+                technology.Maturity.ToString().ToLowerInvariant(),
+                technology.Accent);
+
+    private static string[] DeserializeArray(string json)
+        => JsonSerializer.Deserialize<string[]>(json) ?? [];
 }
 
 public static class ProfileEndpoints

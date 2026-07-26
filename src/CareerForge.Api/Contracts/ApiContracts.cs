@@ -31,3 +31,42 @@ public sealed record AnswerRequest(string AnswerText, int SelfScore);
 public sealed record CatalogTechnology(Guid Id, string Slug, string Name, string Category, string Maturity, string Accent);
 public sealed record CatalogSkill(Guid Id, string Slug, string Name, string Category, string Description);
 public sealed record CatalogSpecialization(Guid Id, string Slug, string Name, string Description, object[] Skills);
+
+public sealed record LearningTechnology(
+    Guid Id,
+    string Slug,
+    string Name,
+    string Category,
+    string Accent,
+    int LessonCount);
+
+public sealed record LessonSummary(
+    string StableId,
+    int Version,
+    string Slug,
+    string Title,
+    string Summary,
+    string Level,
+    int EstimatedMinutes,
+    CatalogTechnology? Technology);
+
+public sealed record LessonSection(
+    string Key,
+    string Title,
+    int Order,
+    string BodyMarkdown,
+    string? CodeLanguage,
+    string? CodeSample);
+
+public sealed record LessonDetail(
+    string StableId,
+    int Version,
+    string Slug,
+    string Title,
+    string Summary,
+    string Level,
+    int EstimatedMinutes,
+    CatalogTechnology? Technology,
+    string[] Objectives,
+    string[] Prerequisites,
+    LessonSection[] Sections);

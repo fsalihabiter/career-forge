@@ -113,6 +113,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "care
 
 var api = app.MapGroup("/api");
 CatalogEndpoints.Map(api);
+LearningGuideEndpoints.Map(api);
 AuthEndpoints.Map(api, builder.Configuration);
 ProfileEndpoints.Map(api);
 SessionEndpoints.Map(api);
