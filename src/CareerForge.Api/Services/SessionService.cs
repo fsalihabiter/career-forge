@@ -56,7 +56,7 @@ public sealed class SessionService(AppDbContext db)
     public async Task<object?> CompleteAsync(Guid userId, Guid sessionId, CancellationToken ct)
     {
         var session = await db.InterviewSessions
-            .Include(x => x.Questions).ThenInclude(x => x.Question)
+            .Include(x => x.Questions).ThenInclude(x => x.Question).ThenInclude(x => x.Skill)
             .SingleOrDefaultAsync(x => x.Id == sessionId && x.UserId == userId, ct);
         if (session is null) return null;
 
