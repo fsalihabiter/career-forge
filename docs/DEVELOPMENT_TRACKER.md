@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-26
 - Aktif faz: Faz 2 — Öğrenme ve içerik MVP'si
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-204 — Öğrenme rehberi arayüzü`
-- Son tamamlanan iş: `CF-203 — Öğrenme rehberi API'si`
+- Sıradaki iş: `CF-205 — İlk üç örnek ders`
+- Son tamamlanan iş: `CF-204 — Öğrenme rehberi arayüzü`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -20,7 +20,7 @@ işlenir.
 | --- | ---: | ---: | --- |
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
-| 2. Öğrenme ve içerik MVP'si | 3 | 8 | Devam ediyor |
+| 2. Öğrenme ve içerik MVP'si | 4 | 8 | Devam ediyor |
 | 3. İlerleme ve tekrar | 0 | 6 | Bekliyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
@@ -58,8 +58,8 @@ işlenir.
 | CF-201 | Tamamlandı | Versiyonlanabilir içerik şeması | CF-104 | Ders, bölüm, soru, rubric ve pattern modeli tanımlanır |
 | CF-202 | Tamamlandı | Git tabanlı içerik yükleme | CF-201 | İçerik koddan ayrılmış dosyalardan doğrulanarak yüklenir |
 | CF-203 | Tamamlandı | Öğrenme rehberi API'si | CF-202 | Teknoloji, ders listesi ve ders detayı endpoint'leri hazırdır |
-| CF-204 | Sıradaki | Öğrenme rehberi arayüzü | CF-203 | Liste ve ders okuma akışı responsive ve erişilebilirdir |
-| CF-205 | Bekliyor | İlk üç örnek ders | CF-202 | Middleware dahil üç tam ders içerir |
+| CF-204 | Tamamlandı | Öğrenme rehberi arayüzü | CF-203 | Liste ve ders okuma akışı responsive ve erişilebilirdir |
+| CF-205 | Sıradaki | İlk üç örnek ders | CF-202 | Middleware dahil üç tam ders içerir |
 | CF-206 | Bekliyor | Pattern rehberi | CF-202 | Strategy ve Outbox dahil ilk pattern sayfaları hazırdır |
 | CF-207 | Bekliyor | Rubric tabanlı değerlendirme | CF-201 | Boyut bazlı puan ve açıklanabilir geri bildirim üretir |
 | CF-208 | Bekliyor | En az 10 soruluk doğrulanmış oturum | CF-207 | Güçlü sinyal, kırmızı bayrak ve model cevapları içerir |
@@ -307,6 +307,26 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
   görünmezliği HTTP seviyesinde integration testiyle doğrulandı.
 - Release build hatasız, backend testleri 19/19 başarılı ve endpoint sorguları
   güncel API containerında PostgreSQL üzerinde çalıştı.
+
+### 2026-07-26 — CF-204 başlatıldı
+
+- Mevcut CareerForge tasarım dili içinde teknoloji filtreli ders listesi ve odaklı
+  ders okuma deneyiminin geliştirilmesine başlandı.
+
+### 2026-07-26 — CF-204 tamamlandı
+
+- Öğrenme rehberi oturum açmadan da erişilebilen ana navigasyon öğesi olarak
+  eklendi; oturumlu kullanıcıların rota ve mülakat akışları korundu.
+- Teknoloji başına ders sayısını gösteren filtre rayı, boş/yükleniyor durumları ve
+  seviye, süre, teknoloji metadata'sı taşıyan responsive ders kataloğu geliştirildi.
+- Ders okuyucu hedefleri, ön koşulları, sıralı bölüm navigasyonunu, okunabilir içerik
+  kolonunu ve yatay kaydırılabilir kod örneklerini erişilebilir HTML ile sunuyor.
+- Liste, teknoloji filtresi ve ders detayı geçişi component testiyle doğrulandı;
+  frontend testlerinin 4/4'ü ve production build başarılıdır.
+- Container build sırasında bulunan platform bağımlılığı lock uyumsuzluğu Linux
+  Node 24 ortamında düzeltilerek `npm ci` ve Docker web build'i çalışır hâle getirildi.
+- Çalışan container masaüstü ve 390 px mobil viewport'ta görsel olarak incelendi;
+  mobil sayfa genişliğinde yatay taşma bulunmadı.
 
 ## Karar günlüğü
 

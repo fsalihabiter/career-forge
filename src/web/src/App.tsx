@@ -6,7 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5080/api'
 
 type Level = 'beginner' | 'basic' | 'intermediate' | 'advanced' | 'expert'
 type Source = 'skills' | 'specialization' | 'jobRequirements' | 'general'
-type Screen = 'auth' | 'onboarding' | 'dashboard' | 'session' | 'result'
+type Screen = 'auth' | 'onboarding' | 'dashboard' | 'learning' | 'lesson' | 'session' | 'result'
 type Technology = { id: string; slug: string; name: string; category: string; maturity: string; accent: string }
 type Skill = { id: string; slug: string; name: string; category: string; description: string }
 type Specialization = {
@@ -42,6 +42,30 @@ type SessionQuestion = {
 }
 type SessionData = { id: string; kind: string; status: string; questions: SessionQuestion[] }
 type PathItem = { id: string; title: string; reason: string; order: number; completed: boolean }
+type LearningTechnology = Pick<Technology, 'id' | 'slug' | 'name' | 'category' | 'accent'> & { lessonCount: number }
+type LessonSummary = {
+  stableId: string
+  version: number
+  slug: string
+  title: string
+  summary: string
+  level: string
+  estimatedMinutes: number
+  technology?: Technology
+}
+type LessonSection = {
+  key: string
+  title: string
+  order: number
+  bodyMarkdown: string
+  codeLanguage?: string
+  codeSample?: string
+}
+type LessonDetail = LessonSummary & {
+  objectives: string[]
+  prerequisites: string[]
+  sections: LessonSection[]
+}
 
 const levelLabels: Record<string, string> = {
   beginner: 'Başlangıç',
@@ -78,6 +102,7 @@ async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 function App() {
   const [screen, setScreen] = useState<Screen>(localStorage.getItem('careerforge-token') ? 'dashboard' : 'auth')
+  const authenticated = Boolean(localStorage.getItem('careerforge-token'))
   const [catalog, setCatalog] = useState<{ technologies: Technology[]; skills: Skill[]; specializations: Specialization[] }>({
     technologies: [], skills: [], specializations: [],
   })
@@ -85,6 +110,10 @@ function App() {
   const [path, setPath] = useState<PathItem[]>([])
   const [session, setSession] = useState<SessionData | null>(null)
   const [result, setResult] = useState<SessionData | null>(null)
+  const [learningTechnologies, setLearningTechnologies] = useState<LearningTechnology[]>([])
+  const [lessons, setLessons] = useState<LessonSummary[]>([])
+  const [lesson, setLesson] = useState<LessonDetail | null>(null)
+  const [learningTechnology, setLearningTechnology] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -138,20 +167,54 @@ function App() {
     setScreen('auth')
   }
 
+  const openLearning = async (technology = learningTechnology) => {
+    setScreen('learning')
+    setLoading(true)
+    setMessage('')
+    try {
+      const query = technology ? `?technology=${encodeURIComponent(technology)}` : ''
+      const [technologies, lessonList] = await Promise.all([
+        api<LearningTechnology[]>('/learning/technologies'),
+        api<LessonSummary[]>(`/learning/lessons${query}`),
+      ])
+      setLearningTechnologies(technologies)
+      setLessons(lessonList)
+      setLearningTechnology(technology)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Öğrenme rehberi yüklenemedi.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const openLesson = async (slug: string) => {
+    setLoading(true)
+    setMessage('')
+    try {
+      setLesson(await api<LessonDetail>(`/learning/lessons/${slug}`))
+      setScreen('lesson')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Ders açılamadı.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
-        <button className="brand" onClick={() => screen !== 'auth' && setScreen('dashboard')} aria-label="CareerForge ana sayfa">
+        <button className="brand" onClick={() => setScreen(authenticated ? 'dashboard' : 'auth')} aria-label="CareerForge ana sayfa">
           <span className="brand-mark">CF</span>
           <span><strong>CareerForge</strong><small>Mülakat çalışma sistemi</small></span>
         </button>
-        {screen !== 'auth' && (
-          <nav aria-label="Ana menü">
-            <button className={screen === 'dashboard' ? 'nav-active' : ''} onClick={() => { setScreen('dashboard'); loadDashboard() }}>Rotam</button>
-            <button onClick={() => startSession('interview')}>Mülakat</button>
-            <button onClick={logout}>Çıkış</button>
-          </nav>
-        )}
+        <nav aria-label="Ana menü">
+          {authenticated && <button className={screen === 'dashboard' ? 'nav-active' : ''} onClick={() => { setScreen('dashboard'); loadDashboard() }}>Rotam</button>}
+          <button className={screen === 'learning' || screen === 'lesson' ? 'nav-active' : ''} onClick={() => openLearning()}>Rehber</button>
+          {authenticated && <button onClick={() => startSession('interview')}>Mülakat</button>}
+          {authenticated && <button onClick={logout}>Çıkış</button>}
+          {!authenticated && screen !== 'auth' && <button onClick={() => setScreen('auth')}>Giriş yap</button>}
+        </nav>
       </header>
 
       {message && <div className="notice" role="status">{message}<button onClick={() => setMessage('')}>Kapat</button></div>}
@@ -176,6 +239,19 @@ function App() {
             loading={loading}
           />
         )}
+        {screen === 'learning' && (
+          <LearningGuide
+            technologies={learningTechnologies}
+            lessons={lessons}
+            selectedTechnology={learningTechnology}
+            loading={loading}
+            onTechnology={openLearning}
+            onLesson={openLesson}
+          />
+        )}
+        {screen === 'lesson' && lesson && (
+          <LessonReader lesson={lesson} onBack={() => openLearning(learningTechnology)} />
+        )}
         {screen === 'session' && session && (
           <SessionScreen
             session={session}
@@ -189,6 +265,130 @@ function App() {
         )}
       </main>
     </div>
+  )
+}
+
+function LearningGuide({ technologies, lessons, selectedTechnology, loading, onTechnology, onLesson }: {
+  technologies: LearningTechnology[]
+  lessons: LessonSummary[]
+  selectedTechnology: string
+  loading: boolean
+  onTechnology: (slug?: string) => void
+  onLesson: (slug: string) => void
+}) {
+  const totalLessons = technologies.reduce((sum, technology) => sum + technology.lessonCount, 0)
+  return (
+    <section className="learning-guide">
+      <header className="guide-hero">
+        <div>
+          <span className="eyebrow">ÖĞRENME REHBERİ</span>
+          <h1>Kavramı oku.<br /><em>Kararı savun.</em></h1>
+        </div>
+        <p>Her ders, mülakatta ezberlenecek bir cevap yerine gerçek bir mühendislik kararını parçalar: bağlam, uygulama ve trade-off.</p>
+      </header>
+
+      <div className="guide-layout">
+        <aside className="guide-filter" aria-label="Teknoloji filtresi">
+          <div className="filter-heading"><span>TEKNOLOJİ</span><b>{totalLessons} ders</b></div>
+          <button className={!selectedTechnology ? 'active' : ''} onClick={() => onTechnology('')}>
+            <i className="all-tech-mark" />Tüm dersler
+            <span>{totalLessons}</span>
+          </button>
+          {technologies.map(technology => (
+            <button
+              key={technology.id}
+              className={selectedTechnology === technology.slug ? 'active' : ''}
+              onClick={() => onTechnology(technology.slug)}
+            >
+              <i style={{ background: technology.accent }} />{technology.name}
+              <span>{technology.lessonCount}</span>
+            </button>
+          ))}
+        </aside>
+
+        <div className="lesson-catalog" aria-live="polite" aria-busy={loading}>
+          <div className="catalog-heading">
+            <div>
+              <span>{selectedTechnology ? technologies.find(x => x.slug === selectedTechnology)?.name : 'Tüm teknolojiler'}</span>
+              <h2>Ders kataloğu</h2>
+            </div>
+            <b>{lessons.length.toString().padStart(2, '0')}</b>
+          </div>
+          {loading ? (
+            <div className="guide-state"><span className="loading-line" />Dersler yükleniyor…</div>
+          ) : lessons.length === 0 ? (
+            <div className="guide-state"><b>Bu alanda yayınlanmış ders yok.</b><p>Yeni içerikler hazır olduğunda burada görünecek.</p></div>
+          ) : (
+            <div className="lesson-grid">
+              {lessons.map((item, index) => (
+                <article className="lesson-card" key={`${item.stableId}-${item.version}`}>
+                  <div className="lesson-index">{String(index + 1).padStart(2, '0')}</div>
+                  <div className="lesson-card-body">
+                    <div className="lesson-meta">
+                      <span>{levelLabels[item.level] ?? item.level}</span>
+                      <span>{item.estimatedMinutes} dk</span>
+                      {item.technology && <span>{item.technology.name}</span>}
+                    </div>
+                    <h3>{item.title}</h3>
+                    <p>{item.summary}</p>
+                    <button className="lesson-link" onClick={() => onLesson(item.slug)} disabled={loading}>
+                      Dersi aç <span aria-hidden="true">→</span>
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function LessonReader({ lesson, onBack }: { lesson: LessonDetail; onBack: () => void }) {
+  return (
+    <article className="lesson-reader">
+      <button className="text-button reader-back" onClick={onBack}>← Ders kataloğuna dön</button>
+      <header className="reader-hero">
+        <div className="reader-number">v{lesson.version.toString().padStart(2, '0')}</div>
+        <div>
+          <div className="lesson-meta">
+            <span>{levelLabels[lesson.level] ?? lesson.level}</span>
+            <span>{lesson.estimatedMinutes} dk okuma</span>
+            {lesson.technology && <span>{lesson.technology.name}</span>}
+          </div>
+          <h1>{lesson.title}</h1>
+          <p>{lesson.summary}</p>
+        </div>
+      </header>
+
+      <div className="reader-layout">
+        <aside className="reader-rail">
+          <div><small>BU DERSTE</small>{lesson.objectives.map(objective => <p key={objective}>{objective}</p>)}</div>
+          {lesson.prerequisites.length > 0 && (
+            <div><small>ÖN KOŞULLAR</small>{lesson.prerequisites.map(item => <p key={item}>{item}</p>)}</div>
+          )}
+          <nav aria-label="Ders bölümleri">
+            {lesson.sections.map(section => <a key={section.key} href={`#${section.key}`}>{section.order}. {section.title}</a>)}
+          </nav>
+        </aside>
+        <div className="reader-content">
+          {lesson.sections.map(section => (
+            <section id={section.key} key={section.key} className="reader-section">
+              <span>{section.order.toString().padStart(2, '0')}</span>
+              <h2>{section.title}</h2>
+              {section.bodyMarkdown.split(/\n\n+/).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+              {section.codeSample && (
+                <div className="code-block">
+                  <div><span>{section.codeLanguage ?? 'code'}</span><small>ÖRNEK</small></div>
+                  <pre tabIndex={0}><code>{section.codeSample}</code></pre>
+                </div>
+              )}
+            </section>
+          ))}
+        </div>
+      </div>
+    </article>
   )
 }
 

@@ -42,6 +42,7 @@ function catalogResponse(url: string) {
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
+    vi.stubGlobal('scrollTo', vi.fn())
   })
 
   it('renders the account entry screen and loads the public catalog', async () => {
@@ -171,5 +172,59 @@ describe('App', () => {
     expect(screen.getByText(completedQuestion.modelAnswer)).toBeInTheDocument()
     expect(screen.getByText('Idempotency key')).toBeInTheDocument()
     expect(screen.getByText('Sadece butonu kapatmak')).toBeInTheDocument()
+  })
+
+  it('filters the learning guide and opens an accessible lesson reader', async () => {
+    localStorage.setItem('careerforge-token', 'existing-token')
+    const learningTechnologies = [
+      { id: 'tech-1', slug: 'dotnet', name: 'ASP.NET Core', category: 'Backend', accent: '#6844b8', lessonCount: 1 },
+    ]
+    const lesson = {
+      stableId: 'middleware-order',
+      version: 1,
+      slug: 'middleware-order',
+      title: 'Middleware sırası',
+      summary: 'HTTP pipeline sırasını doğru kur.',
+      level: 'intermediate',
+      estimatedMinutes: 12,
+      technology: technologies[0],
+    }
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = urlOf(input)
+      if (url.endsWith('/learning/technologies')) return response(learningTechnologies)
+      if (url.includes('/learning/lessons?technology=dotnet')) return response([lesson])
+      if (url.endsWith('/learning/lessons/middleware-order')) {
+        return response({
+          ...lesson,
+          objectives: ['Pipeline sırasını açıklamak'],
+          prerequisites: ['Temel HTTP bilgisi'],
+          sections: [
+            { key: 'pipeline', title: 'Pipeline nasıl işler?', order: 1, bodyMarkdown: 'Her middleware sırayla çalışır.', codeLanguage: 'csharp', codeSample: 'app.UseAuthentication();' },
+          ],
+        })
+      }
+      if (url.endsWith('/learning/lessons')) return response([lesson])
+      const catalog = catalogResponse(url)
+      if (catalog) return catalog
+      if (url.endsWith('/me/skills')) return response([])
+      if (url.endsWith('/learning-paths/current')) return response({ items: [] })
+      return response({}, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Rehber' }))
+
+    expect(await screen.findByRole('heading', { name: 'Ders kataloğu' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /ASP.NET Core/ }))
+    expect(await screen.findByText('Middleware sırası')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Dersi aç/ }))
+
+    expect(await screen.findByRole('heading', { name: 'Middleware sırası' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Ders bölümleri' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Pipeline nasıl işler?' })).toBeInTheDocument()
+    expect(screen.getByText('app.UseAuthentication();')).toBeInTheDocument()
   })
 })
