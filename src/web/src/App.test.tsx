@@ -206,12 +206,36 @@ describe('App', () => {
       technology: technologies[0],
     }
     const pattern = { ...lesson, stableId: 'outbox', slug: 'outbox', title: 'Transactional Outbox', category: 'Dağıtık sistem' }
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = urlOf(input)
       if (url.endsWith('/learning/technologies')) return response(learningTechnologies)
       if (url.endsWith('/learning/patterns/outbox')) return response({ ...pattern, objectives: ['Dual-write problemini açıklamak'], prerequisites: [], sections: [{ key: 'atomicity', title: 'Atomiklik sınırı', order: 1, bodyMarkdown: 'Aynı transaction içinde yaz.', codeLanguage: 'sql', codeSample: 'INSERT INTO outbox_messages ...;' }] })
       if (url.endsWith('/learning/patterns')) return response([pattern])
       if (url.includes('/learning/lessons?technology=dotnet')) return response([lesson])
+      if (url.endsWith('/learning/lessons/middleware-order/progress') && init?.method === 'PUT') {
+        return response({
+          lessonStableId: lesson.stableId,
+          lessonVersion: 1,
+          lastSectionKey: 'pipeline',
+          completedSectionKeys: ['pipeline'],
+          completedSections: 1,
+          totalSections: 1,
+          completed: true,
+          updatedAt: '2026-07-26T18:00:00Z',
+        })
+      }
+      if (url.endsWith('/learning/lessons/middleware-order/progress')) {
+        return response({
+          lessonStableId: lesson.stableId,
+          lessonVersion: 1,
+          lastSectionKey: 'pipeline',
+          completedSectionKeys: [],
+          completedSections: 0,
+          totalSections: 1,
+          completed: false,
+          updatedAt: '2026-07-26T18:00:00Z',
+        })
+      }
       if (url.endsWith('/learning/lessons/middleware-order')) {
         return response({
           ...lesson,
@@ -245,6 +269,14 @@ describe('App', () => {
     expect(screen.getByRole('navigation', { name: 'Ders bölümleri' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Pipeline nasıl işler?' })).toBeInTheDocument()
     expect(screen.getByText('app.UseAuthentication();')).toBeInTheDocument()
+    expect(screen.getByText('0 / 1 bölüm')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Dersi tamamla' }))
+    expect(await screen.findByText('DERS TAMAMLANDI')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/learning\/lessons\/middleware-order\/progress$/),
+      expect.objectContaining({ method: 'PUT' }),
+    )
 
     await user.click(screen.getByRole('button', { name: 'Rehber' }))
     await user.click(await screen.findByRole('tab', { name: 'Patternler' }))

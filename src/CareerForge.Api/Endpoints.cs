@@ -157,6 +157,76 @@ public static class LearningGuideEndpoints
             return lesson is null ? Results.NotFound() : Results.Ok(ToDetail(lesson));
         });
 
+        learning.MapGet("/lessons/{slug}/progress", async (
+            string slug,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            CancellationToken ct) =>
+        {
+            var lesson = await LatestPublishedLessons(db)
+                .Where(x => x.Slug == slug)
+                .Include(x => x.Sections)
+                .SingleOrDefaultAsync(ct);
+            if (lesson is null) return Results.NotFound();
+
+            var progress = await db.LessonProgress.AsNoTracking().SingleOrDefaultAsync(
+                x => x.UserId == principal.UserId()
+                    && x.LessonStableId == lesson.StableId
+                    && x.LessonVersion == lesson.Version,
+                ct);
+            return Results.Ok(ToProgress(lesson, progress));
+        }).RequireAuthorization();
+
+        learning.MapPut("/lessons/{slug}/progress", async (
+            string slug,
+            UpdateLessonProgressRequest request,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            CancellationToken ct) =>
+        {
+            var lesson = await LatestPublishedLessons(db)
+                .Where(x => x.Slug == slug)
+                .Include(x => x.Sections)
+                .SingleOrDefaultAsync(ct);
+            if (lesson is null) return Results.NotFound();
+
+            var sectionKeys = lesson.Sections.Select(x => x.Key).ToHashSet(StringComparer.Ordinal);
+            var completedKeys = (request.CompletedSectionKeys ?? [])
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            if (!sectionKeys.Contains(request.LastSectionKey)
+                || completedKeys.Any(x => !sectionKeys.Contains(x)))
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["sections"] = ["İlerleme yalnızca bu dersin bölümleri için kaydedilebilir."]
+                });
+
+            var userId = principal.UserId();
+            var progress = await db.LessonProgress.SingleOrDefaultAsync(
+                x => x.UserId == userId
+                    && x.LessonStableId == lesson.StableId
+                    && x.LessonVersion == lesson.Version,
+                ct);
+            progress ??= new LessonProgress
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                LessonStableId = lesson.StableId,
+                LessonVersion = lesson.Version,
+                StartedAt = DateTimeOffset.UtcNow
+            };
+            if (db.Entry(progress).State == EntityState.Detached) db.LessonProgress.Add(progress);
+            progress.LastSectionKey = request.LastSectionKey;
+            progress.CompletedSectionKeysJson = JsonSerializer.Serialize(completedKeys);
+            progress.UpdatedAt = DateTimeOffset.UtcNow;
+            progress.CompletedAt = completedKeys.Length == sectionKeys.Count
+                ? progress.CompletedAt ?? DateTimeOffset.UtcNow
+                : null;
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(ToProgress(lesson, progress));
+        }).RequireAuthorization();
+
         learning.MapGet("/patterns", async (AppDbContext db, CancellationToken ct) =>
         {
             var patterns = await LatestPublishedPatterns(db)
@@ -219,6 +289,20 @@ public static class LearningGuideEndpoints
             lesson.Sections.OrderBy(x => x.Order)
                 .Select(x => new LessonSection(x.Key, x.Title, x.Order, x.BodyMarkdown, x.CodeLanguage, x.CodeSample))
                 .ToArray());
+
+    private static LessonProgressResponse ToProgress(Lesson lesson, LessonProgress? progress)
+    {
+        var completedKeys = progress is null ? [] : DeserializeArray(progress.CompletedSectionKeysJson);
+        return new LessonProgressResponse(
+            lesson.StableId,
+            lesson.Version,
+            progress?.LastSectionKey ?? lesson.Sections.OrderBy(x => x.Order).First().Key,
+            completedKeys,
+            completedKeys.Length,
+            lesson.Sections.Count,
+            progress?.CompletedAt is not null,
+            progress?.UpdatedAt ?? DateTimeOffset.UtcNow);
+    }
 
     private static PatternSummary ToPatternSummary(PatternGuide pattern)
         => new(pattern.StableId, pattern.Version, pattern.Slug, pattern.Title, pattern.Summary,

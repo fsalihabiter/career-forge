@@ -71,6 +71,20 @@ public sealed record LessonDetail(
     string[] Prerequisites,
     LessonSection[] Sections);
 
+public sealed record UpdateLessonProgressRequest(
+    string LastSectionKey,
+    string[] CompletedSectionKeys);
+
+public sealed record LessonProgressResponse(
+    string LessonStableId,
+    int LessonVersion,
+    string LastSectionKey,
+    string[] CompletedSectionKeys,
+    int CompletedSections,
+    int TotalSections,
+    bool Completed,
+    DateTimeOffset UpdatedAt);
+
 public sealed record PatternSummary(
     string StableId,
     int Version,

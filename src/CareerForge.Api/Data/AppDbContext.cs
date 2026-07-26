@@ -24,6 +24,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<InterviewSession> InterviewSessions => Set<InterviewSession>();
     public DbSet<SessionQuestion> SessionQuestions => Set<SessionQuestion>();
     public DbSet<LearningPath> LearningPaths => Set<LearningPath>();
+    public DbSet<LessonProgress> LessonProgress => Set<LessonProgress>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,6 +68,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.Entity<Question>().Property(x => x.RedFlagsJson).HasColumnType("jsonb");
         modelBuilder.Entity<Question>().Property(x => x.RubricJson).HasColumnType("jsonb");
         modelBuilder.Entity<LearningPath>().Property(x => x.SnapshotJson).HasColumnType("jsonb");
+        modelBuilder.Entity<LessonProgress>()
+            .HasIndex(x => new { x.UserId, x.LessonStableId, x.LessonVersion })
+            .IsUnique();
+        modelBuilder.Entity<LessonProgress>()
+            .HasOne<AppUser>()
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<LessonProgress>().Property(x => x.CompletedSectionKeysJson).HasColumnType("jsonb");
         modelBuilder.Entity<UserSkill>().Property(x => x.ConfidenceScore).HasPrecision(5, 2);
     }
 }

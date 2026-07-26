@@ -230,3 +230,16 @@ public sealed class LearningPathItem
     public int Order { get; set; }
     public bool Completed { get; set; }
 }
+
+public sealed class LessonProgress
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public string LessonStableId { get; set; } = "";
+    public int LessonVersion { get; set; }
+    public string LastSectionKey { get; set; } = "";
+    public string CompletedSectionKeysJson { get; set; } = "[]";
+    public DateTimeOffset StartedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? CompletedAt { get; set; }
+}

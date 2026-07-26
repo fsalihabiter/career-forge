@@ -77,6 +77,16 @@ type LessonDetail = LessonSummary & {
 }
 type PatternSummary = LessonSummary & { category: string }
 type PatternDetail = LessonDetail & { category: string }
+type LessonProgress = {
+  lessonStableId: string
+  lessonVersion: number
+  lastSectionKey: string
+  completedSectionKeys: string[]
+  completedSections: number
+  totalSections: number
+  completed: boolean
+  updatedAt: string
+}
 
 const levelLabels: Record<string, string> = {
   beginner: 'Başlangıç',
@@ -124,6 +134,7 @@ function App() {
   const [learningTechnologies, setLearningTechnologies] = useState<LearningTechnology[]>([])
   const [lessons, setLessons] = useState<LessonSummary[]>([])
   const [lesson, setLesson] = useState<LessonDetail | null>(null)
+  const [lessonProgress, setLessonProgress] = useState<LessonProgress | null>(null)
   const [patterns, setPatterns] = useState<PatternSummary[]>([])
   const [guideMode, setGuideMode] = useState<'lessons' | 'patterns'>('lessons')
   const [learningTechnology, setLearningTechnology] = useState('')
@@ -207,6 +218,7 @@ function App() {
     setMessage('')
     try {
       setLesson(await api<PatternDetail>(`/learning/patterns/${slug}`))
+      setLessonProgress(null)
       setScreen('lesson')
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (error) {
@@ -220,13 +232,34 @@ function App() {
     setLoading(true)
     setMessage('')
     try {
-      setLesson(await api<LessonDetail>(`/learning/lessons/${slug}`))
+      const [detail, progress] = await Promise.all([
+        api<LessonDetail>(`/learning/lessons/${slug}`),
+        authenticated
+          ? api<LessonProgress>(`/learning/lessons/${slug}/progress`)
+          : Promise.resolve(null),
+      ])
+      setLesson(detail)
+      setLessonProgress(progress)
       setScreen('lesson')
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Ders açılamadı.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const saveLessonProgress = async (lastSectionKey: string, completedSectionKeys: string[]) => {
+    if (!lesson) return
+    try {
+      const progress = await api<LessonProgress>(`/learning/lessons/${lesson.slug}/progress`, {
+        method: 'PUT',
+        body: JSON.stringify({ lastSectionKey, completedSectionKeys }),
+      })
+      setLessonProgress(progress)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Ders ilerlemesi kaydedilemedi.')
+      throw error
     }
   }
 
@@ -283,7 +316,13 @@ function App() {
           />
         )}
         {screen === 'lesson' && lesson && (
-          <LessonReader lesson={lesson} onBack={() => openLearning(learningTechnology)} />
+          <LessonReader
+            lesson={lesson}
+            progress={lessonProgress}
+            canTrack={authenticated && !('category' in lesson)}
+            onProgress={saveLessonProgress}
+            onBack={() => openLearning(learningTechnology)}
+          />
         )}
         {screen === 'session' && session && (
           <SessionScreen
@@ -387,7 +426,35 @@ function LearningGuide({ technologies, lessons, patterns, mode, selectedTechnolo
   )
 }
 
-function LessonReader({ lesson, onBack }: { lesson: LessonDetail; onBack: () => void }) {
+function LessonReader({ lesson, progress, canTrack, onProgress, onBack }: {
+  lesson: LessonDetail
+  progress: LessonProgress | null
+  canTrack: boolean
+  onProgress: (lastSectionKey: string, completedSectionKeys: string[]) => Promise<void>
+  onBack: () => void
+}) {
+  const [savingSection, setSavingSection] = useState('')
+  const completed = new Set(progress?.completedSectionKeys ?? [])
+  const percent = progress ? Math.round((progress.completedSections / progress.totalSections) * 100) : 0
+
+  useEffect(() => {
+    if (!progress || progress.completedSections === 0 || progress.completed) return
+    const target = document.getElementById(progress.lastSectionKey)
+    target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  }, [progress])
+
+  const completeSection = async (section: LessonSection) => {
+    const completedKeys = [...new Set([...completed, section.key])]
+    const next = lesson.sections.find(item => item.order === section.order + 1)
+    setSavingSection(section.key)
+    try {
+      await onProgress(next?.key ?? section.key, completedKeys)
+      if (next) document.getElementById(next.key)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+    } finally {
+      setSavingSection('')
+    }
+  }
+
   return (
     <article className="lesson-reader">
       <button className="text-button reader-back" onClick={onBack}>← Ders kataloğuna dön</button>
@@ -401,6 +468,15 @@ function LessonReader({ lesson, onBack }: { lesson: LessonDetail; onBack: () => 
           </div>
           <h1>{lesson.title}</h1>
           <p>{lesson.summary}</p>
+          {canTrack && progress && (
+            <div className={`reader-progress ${progress.completed ? 'is-complete' : ''}`}>
+              <div>
+                <span>{progress.completed ? 'DERS TAMAMLANDI' : 'OKUMA İLERLEMESİ'}</span>
+                <b>{progress.completedSections} / {progress.totalSections} bölüm</b>
+              </div>
+              <div className="reader-progress-track" aria-label={`Ders ilerlemesi yüzde ${percent}`}><i style={{ width: `${percent}%` }} /></div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -411,8 +487,24 @@ function LessonReader({ lesson, onBack }: { lesson: LessonDetail; onBack: () => 
             <div><small>ÖN KOŞULLAR</small>{lesson.prerequisites.map(item => <p key={item}>{item}</p>)}</div>
           )}
           <nav aria-label="Ders bölümleri">
-            {lesson.sections.map(section => <a key={section.key} href={`#${section.key}`}>{section.order}. {section.title}</a>)}
+            {lesson.sections.map(section => {
+              const isCompleted = completed.has(section.key)
+              const isCurrent = progress?.lastSectionKey === section.key && !progress.completed
+              return (
+                <a
+                  key={section.key}
+                  href={`#${section.key}`}
+                  className={isCompleted ? 'section-complete' : isCurrent ? 'section-current' : ''}
+                  aria-current={isCurrent ? 'step' : undefined}
+                >
+                  <i aria-hidden="true">{isCompleted ? '✓' : section.order}</i>
+                  <span>{section.title}</span>
+                  {isCurrent && <small>BURADA KALDIN</small>}
+                </a>
+              )
+            })}
           </nav>
+          {!canTrack && !('category' in lesson) && <p className="reader-signin-note">İlerlemeni cihazlar arasında korumak için giriş yap.</p>}
         </aside>
         <div className="reader-content">
           {lesson.sections.map(section => (
@@ -425,6 +517,21 @@ function LessonReader({ lesson, onBack }: { lesson: LessonDetail; onBack: () => 
                   <div><span>{section.codeLanguage ?? 'code'}</span><small>ÖRNEK</small></div>
                   <pre tabIndex={0}><code>{section.codeSample}</code></pre>
                 </div>
+              )}
+              {canTrack && progress && (
+                <button
+                  className="section-complete-button"
+                  disabled={completed.has(section.key) || savingSection === section.key}
+                  onClick={() => completeSection(section)}
+                >
+                  {completed.has(section.key)
+                    ? '✓ Bölüm tamamlandı'
+                    : savingSection === section.key
+                      ? 'Kaydediliyor…'
+                      : lesson.sections.at(-1)?.key === section.key
+                        ? 'Dersi tamamla'
+                        : 'Bölümü tamamla →'}
+                </button>
               )}
             </section>
           ))}

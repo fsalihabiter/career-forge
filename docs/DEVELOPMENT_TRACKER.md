@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-26
 - Aktif faz: Faz 3 — İlerleme ve tekrar
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-301 — Ders ilerleme kaydı`
-- Son tamamlanan iş: `CF-208 — En az 10 soruluk doğrulanmış oturum`
+- Sıradaki iş: `CF-302 — Beceri bazlı gelişim hesabı`
+- Son tamamlanan iş: `CF-301 — Ders ilerleme kaydı`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -21,7 +21,7 @@ işlenir.
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
 | 2. Öğrenme ve içerik MVP'si | 8 | 8 | Tamamlandı |
-| 3. İlerleme ve tekrar | 0 | 6 | Bekliyor |
+| 3. İlerleme ve tekrar | 1 | 6 | Devam ediyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
 | 6. Gelişmiş deneyim | 0 | 6 | Bekliyor |
@@ -68,8 +68,8 @@ işlenir.
 
 | ID | Durum | İş | Bağımlılık | Kabul özeti |
 | --- | --- | --- | --- | --- |
-| CF-301 | Sıradaki | Ders ilerleme kaydı | CF-204 | Kullanıcı kaldığı yerden farklı cihazda devam eder |
-| CF-302 | Bekliyor | Beceri bazlı gelişim hesabı | CF-207 | Ölçülen seviye ve güven skoru geçmişi korunur |
+| CF-301 | Tamamlandı | Ders ilerleme kaydı | CF-204 | Kullanıcı kaldığı yerden farklı cihazda devam eder |
+| CF-302 | Sıradaki | Beceri bazlı gelişim hesabı | CF-207 | Ölçülen seviye ve güven skoru geçmişi korunur |
 | CF-303 | Bekliyor | Tekrar listesi | CF-302 | Soru ekleme, çıkarma ve filtreleme yapılır |
 | CF-304 | Bekliyor | Spaced repetition planı | CF-303 | Sonraki tekrar tarihi hesaplanır |
 | CF-305 | Bekliyor | Kullanıcı dashboard'u | CF-301–304 | Sıradaki çalışma, zayıf alan ve son sonuç görünür |
@@ -416,6 +416,35 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
 - Gerçek PostgreSQL smoke testinde profilsiz kullanıcıya altı soru türüne yayılan
   10 soru verildi; model cevapların aktifken gizli, tamamlandıktan sonra 10/10
   görünür ve dört boyutta değerlendirilmiş olduğu doğrulandı.
+
+### 2026-07-26 — CF-301 başlatıldı
+
+- Ders bölümlerinin kullanıcı hesabına kaydedilmesi, kalınan bölümün farklı cihazda
+  geri yüklenmesi ve okuyucuda ilerleme durumunun görünür kılınması çalışmasına
+  başlandı.
+
+### 2026-07-26 — CF-301 tamamlandı
+
+- Ders stable ID ve sürümü başına kullanıcıya özel son bölüm, tamamlanan bölüm
+  anahtarları, başlangıç, güncelleme ve tamamlanma zamanlarını saklayan ilerleme
+  modeli ile PostgreSQL migration'ı eklendi.
+- Yetkilendirilmiş ilerleme okuma ve güncelleme endpoint'leri yalnızca güncel
+  yayınlanmış dersleri kabul ediyor; yabancı bölüm anahtarlarını reddediyor ve
+  hesaplar arasında veri izolasyonu sağlıyor.
+- Okuyucunun editoryal yapısı korunarak sol bölüm rayı tamamlanan, kalınan ve sıradaki
+  adımları gösteren bir ilerleme omurgasına dönüştürüldü; bölüm ve ders tamamlama
+  eylemleri ile toplam ilerleme çubuğu eklendi.
+- Kayıtlı kullanıcı ders açtığında hesap ilerlemesi yükleniyor ve kaldığı bölüme
+  yönlendiriliyor; anonim okuyucuya ilerlemeyi korumak için giriş yönlendirmesi
+  gösteriliyor.
+- Anonim erişim, geçersiz bölüm, hesap izolasyonu ve ikinci oturumda geri yükleme
+  integration testiyle; bölüm tamamlama davranışı component testiyle doğrulandı.
+- Backend testleri 24/24, frontend testleri 4/4 ve production/container build
+  başarılıdır; lint yalnızca önceden bilinen engelleyici olmayan `useEffect`
+  uyarısını üretmektedir.
+- Gerçek PostgreSQL smoke testinde ilerleme sıfırdan başlatıldı, bir bölüm kaydedildi
+  ve aynı hesapla yeni giriş sonrasında son bölüm ile tamamlanan bölüm aynen geri
+  yüklendi.
 
 ## Karar günlüğü
 
