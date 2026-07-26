@@ -39,6 +39,15 @@ type SessionQuestion = {
   modelAnswer?: string
   signals?: string[]
   redFlags?: string[]
+  selfScore?: number
+  evaluation?: {
+    rubric: string
+    rubricVersion: number
+    overallScore: number
+    dimensions: { key: string; label: string; weight: number; score: number; feedback: string }[]
+    matchedSignals: string[]
+    matchedRedFlags: string[]
+  }
 }
 type SessionData = { id: string; kind: string; status: string; questions: SessionQuestion[] }
 type PathItem = { id: string; title: string; reason: string; order: number; completed: boolean }
@@ -817,6 +826,23 @@ function ResultScreen({ result, onDone }: { result: SessionData; onDone: () => v
           <details key={question.id} className="result-question" open={index === 0}>
             <summary><span>{String(index + 1).padStart(2, '0')}</span><div><b>{question.skill}</b><p>{question.prompt}</p></div><i>+</i></summary>
             <div className="result-answer">
+              {question.evaluation && (
+                <section className="rubric-result" aria-label="Rubric değerlendirmesi">
+                  <div className="rubric-score">
+                    <div><small>SİSTEM ÖLÇÜMÜ</small><b>{question.evaluation.overallScore}</b><span>/ 100</span></div>
+                    <p>{question.evaluation.rubric} · v{question.evaluation.rubricVersion}<br />Öz değerlendirmen: {question.selfScore ?? '—'}</p>
+                  </div>
+                  <div className="rubric-dimensions">
+                    {question.evaluation.dimensions.map(dimension => (
+                      <article key={dimension.key}>
+                        <header><b>{dimension.label}</b><span>{dimension.score} / 100 · %{dimension.weight}</span></header>
+                        <div className="rubric-meter" aria-label={`${dimension.label} puanı ${dimension.score}`}><i style={{ width: `${dimension.score}%` }} /></div>
+                        <p>{dimension.feedback}</p>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              )}
               <div><small>MODEL YAKLAŞIM</small><p>{question.modelAnswer}</p></div>
               <div className="signal-columns"><section><small>GÜÇLÜ SİNYALLER</small><ul>{question.signals?.map(signal => <li key={signal}>{signal}</li>)}</ul></section><section><small>RİSKLİ YAKLAŞIMLAR</small><ul>{question.redFlags?.map(flag => <li key={flag}>{flag}</li>)}</ul></section></div>
             </div>

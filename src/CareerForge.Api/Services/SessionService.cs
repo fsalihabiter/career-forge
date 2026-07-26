@@ -7,6 +7,8 @@ namespace CareerForge.Api.Services;
 
 public sealed class SessionService(AppDbContext db)
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
     public async Task<InterviewSession> StartAsync(Guid userId, SessionKind kind, int requestedCount, CancellationToken ct)
     {
         var count = Math.Clamp(requestedCount, 3, 15);
@@ -69,16 +71,23 @@ public sealed class SessionService(AppDbContext db)
     public async Task<object?> CompleteAsync(Guid userId, Guid sessionId, CancellationToken ct)
     {
         var session = await db.InterviewSessions
+            .AsSplitQuery()
             .Include(x => x.Questions).ThenInclude(x => x.Question).ThenInclude(x => x.Skill)
+            .Include(x => x.Questions).ThenInclude(x => x.Question).ThenInclude(x => x.Rubric).ThenInclude(x => x!.Dimensions)
             .SingleOrDefaultAsync(x => x.Id == sessionId && x.UserId == userId, ct);
         if (session is null) return null;
 
         session.Status = SessionStatus.Completed;
         session.CompletedAt = DateTimeOffset.UtcNow;
-        var scored = session.Questions.Where(x => x.SelfScore.HasValue).ToList();
+        var scored = session.Questions.Where(x => x.AnswerText != null && x.Question.Rubric != null).ToList();
+        foreach (var item in scored)
+            item.EvaluationJson = JsonSerializer.Serialize(
+                RubricEvaluator.Evaluate(item.Question, item.AnswerText!),
+                JsonOptions);
+
         foreach (var group in scored.GroupBy(x => x.Question.SkillId))
         {
-            var average = group.Average(x => x.SelfScore!.Value);
+            var average = group.Average(x => Evaluation(x).OverallScore);
             var measured = average switch
             {
                 < 25 => ProficiencyLevel.Beginner,
@@ -105,7 +114,7 @@ public sealed class SessionService(AppDbContext db)
             skills = scored.GroupBy(x => x.Question.Skill.Name).Select(group => new
             {
                 skill = group.Key,
-                score = Math.Round(group.Average(x => x.SelfScore!.Value), 1),
+                score = Math.Round(group.Average(x => Evaluation(x).OverallScore), 1),
                 confidence = Math.Min(100, group.Count() * 20),
                 level = ScoreLabel(group.Average(x => x.SelfScore!.Value))
             })
@@ -134,9 +143,16 @@ public sealed class SessionService(AppDbContext db)
                 : null,
             redFlags = session.Status == SessionStatus.Completed
                 ? JsonSerializer.Deserialize<string[]>(x.Question.RedFlagsJson)
+                : null,
+            selfScore = session.Status == SessionStatus.Completed ? x.SelfScore : null,
+            evaluation = session.Status == SessionStatus.Completed && x.EvaluationJson != null
+                ? JsonSerializer.Deserialize<RubricEvaluation>(x.EvaluationJson, JsonOptions)
                 : null
         })
     };
+
+    private static RubricEvaluation Evaluation(SessionQuestion question) =>
+        JsonSerializer.Deserialize<RubricEvaluation>(question.EvaluationJson!, JsonOptions)!;
 
     private static string ScoreLabel(double score) => score switch
     {

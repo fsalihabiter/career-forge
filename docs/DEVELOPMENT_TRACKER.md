@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-26
 - Aktif faz: Faz 2 — Öğrenme ve içerik MVP'si
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-207 — Rubric tabanlı değerlendirme`
-- Son tamamlanan iş: `CF-206 — Pattern rehberi`
+- Sıradaki iş: `CF-208 — En az 10 soruluk doğrulanmış oturum`
+- Son tamamlanan iş: `CF-207 — Rubric tabanlı değerlendirme`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -20,7 +20,7 @@ işlenir.
 | --- | ---: | ---: | --- |
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
-| 2. Öğrenme ve içerik MVP'si | 6 | 8 | Devam ediyor |
+| 2. Öğrenme ve içerik MVP'si | 7 | 8 | Devam ediyor |
 | 3. İlerleme ve tekrar | 0 | 6 | Bekliyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
@@ -61,8 +61,8 @@ işlenir.
 | CF-204 | Tamamlandı | Öğrenme rehberi arayüzü | CF-203 | Liste ve ders okuma akışı responsive ve erişilebilirdir |
 | CF-205 | Tamamlandı | İlk üç örnek ders | CF-202 | Middleware dahil üç tam ders içerir |
 | CF-206 | Tamamlandı | Pattern rehberi | CF-202 | Strategy ve Outbox dahil ilk pattern sayfaları hazırdır |
-| CF-207 | Sıradaki | Rubric tabanlı değerlendirme | CF-201 | Boyut bazlı puan ve açıklanabilir geri bildirim üretir |
-| CF-208 | Bekliyor | En az 10 soruluk doğrulanmış oturum | CF-207 | Güçlü sinyal, kırmızı bayrak ve model cevapları içerir |
+| CF-207 | Tamamlandı | Rubric tabanlı değerlendirme | CF-201 | Boyut bazlı puan ve açıklanabilir geri bildirim üretir |
+| CF-208 | Sıradaki | En az 10 soruluk doğrulanmış oturum | CF-207 | Güçlü sinyal, kırmızı bayrak ve model cevapları içerir |
 
 ### Faz 3 — İlerleme ve tekrar
 
@@ -367,6 +367,28 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
   üretmektedir.
 - Güncel container'lar üzerinde PostgreSQL'e iki pattern yüklendiği ve Outbox
   detayının dört bölümü doğru biçimde sunduğu gerçek API isteğiyle doğrulandı.
+
+### 2026-07-26 — CF-207 başlatıldı
+
+- Öz değerlendirmeyi sistem ölçümünden ayıran, rubric boyutlarına göre puan ve
+  açıklanabilir geri bildirim üreten değerlendirme akışına başlandı.
+
+### 2026-07-26 — CF-207 tamamlandı
+
+- Cevaplar beklenen sinyal, riskli yaklaşım, gerekçelendirme, alternatif ve anlatım
+  kanıtlarıyla rubric'in dört ağırlıklı boyutunda deterministik olarak puanlanıyor.
+- Her boyut puanı, ağırlığı ve insan tarafından okunabilir gerekçesi ile rubric
+  sürümü oturum sorusuna JSON snapshot olarak kaydediliyor.
+- Kullanıcı beceri seviyesi öz puan yerine ağırlıklı sistem ölçümünden güncelleniyor;
+  öz değerlendirme karşılaştırma için ayrı tutuluyor.
+- Sonuç ekranına toplam sistem ölçümü, öz puan ve her rubric boyutu için erişilebilir
+  ilerleme göstergesi ile açıklayıcı geri bildirim eklendi.
+- Kalıcılık için PostgreSQL migration'ı eklendi; backend testleri 22/22, frontend
+  testleri 4/4 ve production build başarılıdır, lint yalnızca önceden bilinen
+  engelleyici olmayan `useEffect` uyarısını üretmektedir.
+- Güncel container'larda migration uygulandı; gerçek PostgreSQL oturumunda üç cevap
+  değerlendirilip sonuç API'sinden dört boyut, toplam sistem puanı ve ayrı öz puan
+  döndüğü doğrulandı.
 
 ## Karar günlüğü
 

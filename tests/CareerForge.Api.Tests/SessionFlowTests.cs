@@ -32,6 +32,7 @@ public sealed class SessionFlowTests(CareerForgeApiFactory factory)
             Assert.Null(question.ModelAnswer);
             Assert.Null(question.Signals);
             Assert.Null(question.RedFlags);
+            Assert.Null(question.Evaluation);
         });
 
         foreach (var question in activeSession.Questions)
@@ -63,6 +64,13 @@ public sealed class SessionFlowTests(CareerForgeApiFactory factory)
             Assert.NotEmpty(question.Signals);
             Assert.NotNull(question.RedFlags);
             Assert.NotEmpty(question.RedFlags);
+            Assert.Equal(70, question.SelfScore);
+            Assert.NotNull(question.Evaluation);
+            Assert.Equal(4, question.Evaluation.Dimensions.Length);
+            Assert.InRange(question.Evaluation.OverallScore, 0, 100);
+            Assert.Equal(100, question.Evaluation.Dimensions.Sum(x => x.Weight));
+            Assert.All(question.Evaluation.Dimensions, dimension =>
+                Assert.False(string.IsNullOrWhiteSpace(dimension.Feedback)));
         });
 
         var editResponse = await client.PostAsJsonAsync(
@@ -130,5 +138,22 @@ public sealed class SessionFlowTests(CareerForgeApiFactory factory)
         bool Answered,
         string? ModelAnswer,
         string[]? Signals,
-        string[]? RedFlags);
+        string[]? RedFlags,
+        int? SelfScore,
+        RubricEvaluation? Evaluation);
+
+    private sealed record RubricEvaluation(
+        string Rubric,
+        int RubricVersion,
+        double OverallScore,
+        RubricDimension[] Dimensions,
+        string[] MatchedSignals,
+        string[] MatchedRedFlags);
+
+    private sealed record RubricDimension(
+        string Key,
+        string Label,
+        int Weight,
+        int Score,
+        string Feedback);
 }

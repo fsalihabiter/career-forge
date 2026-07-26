@@ -130,6 +130,18 @@ describe('App', () => {
       modelAnswer: 'Idempotency key ve unique constraint birlikte kullanılır.',
       signals: ['Idempotency key'],
       redFlags: ['Sadece butonu kapatmak'],
+      selfScore: 50,
+      evaluation: {
+        rubric: 'Teknik cevap değerlendirmesi',
+        rubricVersion: 1,
+        overallScore: 76.5,
+        dimensions: [
+          { key: 'technicalAccuracy', label: 'Teknik doğruluk', weight: 40, score: 80, feedback: 'Beklenen kanıtlardan eşleşenler: Idempotency key.' },
+          { key: 'analysis', label: 'Analiz', weight: 25, score: 70, feedback: 'Bu boyut mevcut; gerekçe ve somut örnekle güçlendirilebilir.' },
+        ],
+        matchedSignals: ['Idempotency key'],
+        matchedRedFlags: [],
+      },
     }
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = urlOf(input)
@@ -172,6 +184,10 @@ describe('App', () => {
     expect(screen.getByText(completedQuestion.modelAnswer)).toBeInTheDocument()
     expect(screen.getByText('Idempotency key')).toBeInTheDocument()
     expect(screen.getByText('Sadece butonu kapatmak')).toBeInTheDocument()
+    expect(screen.getByText('76.5')).toBeInTheDocument()
+    expect(screen.getByText('Teknik doğruluk')).toBeInTheDocument()
+    expect(screen.getByText(/Öz değerlendirmen: 50/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Teknik doğruluk puanı 80')).toBeInTheDocument()
   })
 
   it('filters the learning guide and opens an accessible lesson reader', async () => {

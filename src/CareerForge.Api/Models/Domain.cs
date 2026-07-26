@@ -207,6 +207,7 @@ public sealed class SessionQuestion
     public int Order { get; set; }
     public string? AnswerText { get; set; }
     public int? SelfScore { get; set; }
+    public string? EvaluationJson { get; set; }
     public DateTimeOffset? AnsweredAt { get; set; }
 }
 
