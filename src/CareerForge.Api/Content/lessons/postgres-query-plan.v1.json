@@ -1,0 +1,52 @@
+{
+  "stableId": "postgres-query-plan",
+  "version": 1,
+  "slug": "postgresql-sorgu-plani-okumak",
+  "title": "PostgreSQL sorgu planını kanıtla okumak",
+  "summary": "Yavaş bir sorguyu tahminle değil, EXPLAIN ANALYZE çıktısındaki süre, satır ve buffer kanıtlarıyla teşhis et.",
+  "technologySlug": "postgresql",
+  "level": "intermediate",
+  "estimatedMinutes": 20,
+  "status": "published",
+  "objectives": [
+    "Tahmini ve gerçek plan değerlerini ayırt etmek",
+    "Cardinality sapmasının plan seçimine etkisini açıklamak",
+    "Sorgu desenine uygun bileşik indeks sırasını seçmek"
+  ],
+  "prerequisites": ["Temel SQL", "İndeks ve join kavramları"],
+  "category": null,
+  "sections": [
+    {
+      "key": "olcum",
+      "title": "Önce güvenli bir ölçüm al",
+      "order": 1,
+      "bodyMarkdown": "`EXPLAIN` sorguyu çalıştırmadan planı tahmin eder; `EXPLAIN ANALYZE` ise sorguyu gerçekten yürütür ve gerçekleşen satır sayılarını, döngüleri ve süreleri ekler. Üretimde veri değiştiren bir ifade üzerinde ANALYZE kullanmak gerçek yan etki oluşturabilir, bu yüzden önce read-only transaction veya güvenli bir kopya seç.\n\n`BUFFERS` seçeneği disk ve cache davranışını görünür kılar. Tek başına toplam süre yerine hangi düğümün çok satır işlediğine ve beklenenden fazla blok okuduğuna bak.",
+      "codeLanguage": "sql",
+      "codeSample": "EXPLAIN (ANALYZE, BUFFERS, VERBOSE)\nSELECT id, created_at\nFROM orders\nWHERE account_id = 42\n  AND status = 'pending'\nORDER BY created_at DESC\nLIMIT 20;"
+    },
+    {
+      "key": "cardinality",
+      "title": "Tahmin ile gerçeği karşılaştır",
+      "order": 2,
+      "bodyMarkdown": "Plan düğümündeki `rows` tahmindir; `actual rows` gerçekleşen değerdir. Büyük fark, optimizer'ın yanlış join türü veya erişim yolu seçmesine yol açabilir. Sapmanın kaynağı eski istatistik, ilişkili kolonlar ya da parametreye göre çok değişen veri dağılımı olabilir.\n\nİlk tepki olarak indeks eklemek yerine `ANALYZE`, istatistik hedefi ve gerekirse extended statistics seçeneklerini değerlendir. Doğru teşhis, neden yanlış tahmin yapıldığını açıklar.",
+      "codeLanguage": "sql",
+      "codeSample": "ANALYZE orders;\n\nCREATE STATISTICS orders_account_status_stats\n  (dependencies)\nON account_id, status\nFROM orders;"
+    },
+    {
+      "key": "indeks",
+      "title": "İndeksi sorgu deseninden türet",
+      "order": 3,
+      "bodyMarkdown": "Bileşik indeks kolon sırası, eşitlik filtreleri, aralık koşulları ve sıralama ihtiyacına göre seçilir. Örnek sorguda `account_id` ve `status` eşitlik filtresi, `created_at` ise sıralama alanıdır; bu sıra veritabanının ilk 20 kaydı doğrudan indeksten bulmasına yardım eder.\n\nHer kolona ayrı indeks eklemek aynı sonucu vermez ve yazma maliyetini büyütür. Sık kullanılan dar bir durum için partial index, daha küçük ve seçici bir alternatif olabilir.",
+      "codeLanguage": "sql",
+      "codeSample": "CREATE INDEX CONCURRENTLY ix_orders_pending_account_created\nON orders (account_id, created_at DESC)\nWHERE status = 'pending';"
+    },
+    {
+      "key": "dogrulama",
+      "title": "Değişikliği aynı koşulda yeniden ölç",
+      "order": 4,
+      "bodyMarkdown": "İndeks veya sorgu değişikliğinden sonra aynı parametreler ve benzer cache koşullarıyla planı tekrar al. Toplam süre kadar okunan buffer, işlenen satır ve plan kararlılığını karşılaştır. Küçük test verisi üzerinde kazanım görmek üretim dağılımında aynı sonucu garanti etmez.\n\nGüçlü bir performans anlatısı; başlangıç kanıtını, hipotezi, yapılan tek değişikliği ve ölçülen sonucu birlikte verir. Böylece optimizasyon geri alınabilir ve ekip tarafından denetlenebilir.",
+      "codeLanguage": "sql",
+      "codeSample": "SELECT indexrelname, idx_scan, idx_tup_read\nFROM pg_stat_user_indexes\nWHERE relname = 'orders';"
+    }
+  ]
+}

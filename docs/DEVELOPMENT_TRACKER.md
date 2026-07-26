@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-26
 - Aktif faz: Faz 2 — Öğrenme ve içerik MVP'si
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-205 — İlk üç örnek ders`
-- Son tamamlanan iş: `CF-204 — Öğrenme rehberi arayüzü`
+- Sıradaki iş: `CF-206 — Pattern rehberi`
+- Son tamamlanan iş: `CF-205 — İlk üç örnek ders`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -20,7 +20,7 @@ işlenir.
 | --- | ---: | ---: | --- |
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
-| 2. Öğrenme ve içerik MVP'si | 4 | 8 | Devam ediyor |
+| 2. Öğrenme ve içerik MVP'si | 5 | 8 | Devam ediyor |
 | 3. İlerleme ve tekrar | 0 | 6 | Bekliyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
@@ -59,8 +59,8 @@ işlenir.
 | CF-202 | Tamamlandı | Git tabanlı içerik yükleme | CF-201 | İçerik koddan ayrılmış dosyalardan doğrulanarak yüklenir |
 | CF-203 | Tamamlandı | Öğrenme rehberi API'si | CF-202 | Teknoloji, ders listesi ve ders detayı endpoint'leri hazırdır |
 | CF-204 | Tamamlandı | Öğrenme rehberi arayüzü | CF-203 | Liste ve ders okuma akışı responsive ve erişilebilirdir |
-| CF-205 | Sıradaki | İlk üç örnek ders | CF-202 | Middleware dahil üç tam ders içerir |
-| CF-206 | Bekliyor | Pattern rehberi | CF-202 | Strategy ve Outbox dahil ilk pattern sayfaları hazırdır |
+| CF-205 | Tamamlandı | İlk üç örnek ders | CF-202 | Middleware dahil üç tam ders içerir |
+| CF-206 | Sıradaki | Pattern rehberi | CF-202 | Strategy ve Outbox dahil ilk pattern sayfaları hazırdır |
 | CF-207 | Bekliyor | Rubric tabanlı değerlendirme | CF-201 | Boyut bazlı puan ve açıklanabilir geri bildirim üretir |
 | CF-208 | Bekliyor | En az 10 soruluk doğrulanmış oturum | CF-207 | Güçlü sinyal, kırmızı bayrak ve model cevapları içerir |
 
@@ -327,6 +327,27 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
   Node 24 ortamında düzeltilerek `npm ci` ve Docker web build'i çalışır hâle getirildi.
 - Çalışan container masaüstü ve 390 px mobil viewport'ta görsel olarak incelendi;
   mobil sayfa genişliğinde yatay taşma bulunmadı.
+
+### 2026-07-26 — CF-205 başlatıldı
+
+- Middleware sırası, PostgreSQL sorgu planı ve React istek yarışları konularında
+  üç uygulamalı, yayınlanabilir ders içeriğinin hazırlanmasına başlandı.
+
+### 2026-07-26 — CF-205 tamamlandı
+
+- ASP.NET Core middleware sırası dersi; iki yönlü pipeline, kimlik/yetki sırası,
+  hata sınırı ve davranış tabanlı test bölümleriyle tamamlanıp yayınlandı.
+- PostgreSQL sorgu planı dersi; güvenli ölçüm, cardinality sapması, bileşik/partial
+  indeks seçimi ve ölçüm sonrası doğrulama bölümleriyle tamamlanıp yayınlandı.
+- React istek yarışları dersi; yarış zaman çizelgesi, AbortController, istek kimliği
+  ve ters tamamlanma sırası testi bölümleriyle tamamlanıp yayınlandı.
+- Her ders üç öğrenme hedefi, ön koşullar, dört sıralı bölüm ve çalıştırılabilir
+  C#, SQL veya TypeScript örnekleri taşıyor.
+- Gerçek PostgreSQL doğrulamasında ortaya çıkan bölüm anahtarı güncelleme hatası,
+  ana kaydı koruyup alt bölümleri transaction içinde deterministik yeniden kuran
+  importer akışıyla giderildi ve regresyon testi eklendi.
+- Release build hatasız, backend testleri 20/20 başarılı; container importer'ı üç
+  dersi yükledi ve API middleware detayında dört bölümü doğru sırada döndürdü.
 
 ## Karar günlüğü
 

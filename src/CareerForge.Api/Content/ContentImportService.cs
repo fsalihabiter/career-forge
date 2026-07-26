@@ -148,14 +148,14 @@ public sealed class ContentImportService(AppDbContext db, ILogger<ContentImportS
         var technologies = await db.Technologies.ToDictionaryAsync(x => x.Slug, cancellationToken);
         foreach (var definition in definitions)
         {
-            var content = await db.Set<T>().Include(x => x.Sections)
+            var content = await db.Set<T>()
                 .SingleOrDefaultAsync(x => x.StableId == definition.StableId && x.Version == definition.Version, cancellationToken);
             content ??= new T { Id = Guid.NewGuid(), StableId = definition.StableId, Version = definition.Version };
             if (db.Entry(content).State == EntityState.Detached) db.Add(content);
             content.Slug = definition.Slug;
             content.Title = definition.Title;
             content.Summary = definition.Summary;
-            content.Technology = Resolve(technologies, definition.TechnologySlug, $"İçerik {definition.StableId} teknolojisi");
+            content.TechnologyId = Resolve(technologies, definition.TechnologySlug, $"İçerik {definition.StableId} teknolojisi")?.Id;
             content.Level = definition.Level;
             content.EstimatedMinutes = definition.EstimatedMinutes;
             content.Status = definition.Status;
@@ -164,24 +164,26 @@ public sealed class ContentImportService(AppDbContext db, ILogger<ContentImportS
             content.UpdatedAt = DateTimeOffset.UtcNow;
             content.PublishedAt = PublishedAt(definition.Status, content.PublishedAt);
             if (content is PatternGuide pattern) pattern.Category = definition.Category!;
-            var sectionKeys = definition.Sections.Select(x => x.Key).ToHashSet(StringComparer.Ordinal);
-            db.ContentSections.RemoveRange(content.Sections.Where(x => !sectionKeys.Contains(x.Key)));
-            foreach (var item in definition.Sections)
+            await db.SaveChangesAsync(cancellationToken);
+
+            await db.ContentSections.Where(x => x.ContentId == content.Id)
+                .ExecuteDeleteAsync(cancellationToken);
+            db.ChangeTracker.Clear();
+
+            db.ContentSections.AddRange(definition.Sections.Select(item => new ContentSection
             {
-                var section = content.Sections.SingleOrDefault(x => x.Key == item.Key);
-                if (section is null)
-                {
-                    section = new ContentSection { Id = Guid.NewGuid(), Content = content, Key = item.Key };
-                    content.Sections.Add(section);
-                }
-                section.Title = item.Title;
-                section.Order = item.Order;
-                section.BodyMarkdown = item.BodyMarkdown;
-                section.CodeLanguage = item.CodeLanguage;
-                section.CodeSample = item.CodeSample;
-            }
+                Id = Guid.NewGuid(),
+                ContentId = content.Id,
+                Key = item.Key,
+                Title = item.Title,
+                Order = item.Order,
+                BodyMarkdown = item.BodyMarkdown,
+                CodeLanguage = item.CodeLanguage,
+                CodeSample = item.CodeSample
+            }));
+            await db.SaveChangesAsync(cancellationToken);
+            db.ChangeTracker.Clear();
         }
-        await db.SaveChangesAsync(cancellationToken);
     }
 
     private async Task UpsertQuestionsAsync(IEnumerable<QuestionDefinition> definitions, CancellationToken cancellationToken)

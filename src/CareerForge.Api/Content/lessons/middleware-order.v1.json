@@ -2,23 +2,51 @@
   "stableId": "middleware-order",
   "version": 1,
   "slug": "aspnet-core-middleware-sirasi",
-  "title": "ASP.NET Core middleware sırası",
-  "summary": "HTTP pipeline bileşenlerinin neden belirli bir sırada çalıştırıldığını öğren.",
+  "title": "ASP.NET Core middleware sırasını tasarlamak",
+  "summary": "Kimlik doğrulama, yetkilendirme ve hata yönetimini doğru sıraya koyarak güvenli bir HTTP pipeline kur.",
   "technologySlug": "dotnet",
   "level": "intermediate",
-  "estimatedMinutes": 12,
-  "status": "draft",
-  "objectives": ["Middleware sırasının davranışa etkisini açıklamak"],
-  "prerequisites": ["Temel ASP.NET Core bilgisi"],
+  "estimatedMinutes": 18,
+  "status": "published",
+  "objectives": [
+    "Middleware sırasının istek ve yanıt akışına etkisini açıklamak",
+    "Kimlik doğrulama ile yetkilendirme arasındaki bağı doğru kurmak",
+    "Pipeline hatalarını küçük entegrasyon testleriyle kanıtlamak"
+  ],
+  "prerequisites": ["Temel HTTP bilgisi", "ASP.NET Core minimal API deneyimi"],
   "category": null,
   "sections": [
     {
-      "key": "pipeline",
-      "title": "Pipeline nasıl işler?",
+      "key": "zincir",
+      "title": "Pipeline iki yönlü bir zincirdir",
       "order": 1,
-      "bodyMarkdown": "Her middleware isteği bir sonraki bileşene aktarabilir ve yanıt dönüşünde tekrar çalışabilir.",
+      "bodyMarkdown": "Her middleware isteği inceleyebilir, kısa devreyle yanıt üretebilir veya `next` çağrısıyla sonraki bileşene aktarabilir. `next` tamamlandığında kontrol aynı zincirden ters yönde geri gelir; bu nedenle bir middleware hem istekten önce hem yanıttan sonra davranış ekleyebilir.\n\nSıra yalnızca performans ayrıntısı değildir. Bir bileşenin ihtiyaç duyduğu bağlam daha önce üretilmemişse doğru kod yanlış yerde çalışır. Örneğin yetkilendirme, kullanıcı kimliği oluşturulmadan çalışırsa endpoint policy'si geçerli bir kullanıcı göremez.",
       "codeLanguage": "csharp",
-      "codeSample": "app.UseAuthentication();\napp.UseAuthorization();"
+      "codeSample": "app.UseExceptionHandler();\napp.UseHttpsRedirection();\napp.UseAuthentication();\napp.UseAuthorization();\napp.MapEndpoints();"
+    },
+    {
+      "key": "kimlik",
+      "title": "Önce kimliği kur, sonra yetkiyi sor",
+      "order": 2,
+      "bodyMarkdown": "`UseAuthentication` gelen token veya cookie'yi okuyup `HttpContext.User` nesnesini kurar. `UseAuthorization` ise endpoint metadata'sındaki policy'leri bu kullanıcı üzerinden değerlendirir. Bu bağımlılık yüzünden authentication her zaman authorization'dan önce gelmelidir.\n\nEndpoint eşleme konumu da önemlidir. Modern minimal hosting modelinde routing çoğunlukla otomatik kurulsa da güvenlik bileşenlerini endpoint'lerden önce açıkça yerleştirmek, pipeline niyetini görünür ve gözden geçirilebilir tutar.",
+      "codeLanguage": "csharp",
+      "codeSample": "app.UseAuthentication();\napp.UseAuthorization();\n\napp.MapGet(\"/profile\", (ClaimsPrincipal user) => user.Identity?.Name)\n   .RequireAuthorization();"
+    },
+    {
+      "key": "hata",
+      "title": "Hata sınırını zincirin dışına koy",
+      "order": 3,
+      "bodyMarkdown": "Merkezi exception handler mümkün olduğunca erken çalışmalıdır; böylece kendisinden sonra gelen middleware ve endpoint'lerde oluşan beklenmeyen hataları yakalayabilir. Fakat süreç başlatma hataları veya handler'dan önce çalışan bileşenler bu sınırın dışındadır.\n\nBir hata middleware'i log üretirken cevap gövdesine stack trace koymamalıdır. İstemciye kararlı bir problem sözleşmesi, operasyona correlation ID ve ayrıntılı sunucu logu verilmesi güvenlik ile teşhis edilebilirliği dengeler.",
+      "codeLanguage": "csharp",
+      "codeSample": "app.UseExceptionHandler();\napp.Use(async (context, next) =>\n{\n    context.Response.Headers[\"X-Correlation-ID\"] = context.TraceIdentifier;\n    await next();\n});"
+    },
+    {
+      "key": "dogrulama",
+      "title": "Sırayı davranışla doğrula",
+      "order": 4,
+      "bodyMarkdown": "Pipeline sırasını yalnızca kod incelemesiyle doğrulamak kırılgandır. Korunan bir endpoint için anonim isteğin 401, geçerli kimliğe sahip fakat yetkisiz isteğin 403 ve doğru policy'ye sahip isteğin 200 döndüğünü entegrasyon testiyle kanıtla.\n\nMülakatta güçlü cevap, ezberlenmiş bir middleware listesi vermek yerine her sıranın ürettiği bağlamı ve bozulduğunda gözlenen HTTP davranışını açıklamaktır.",
+      "codeLanguage": "csharp",
+      "codeSample": "var anonymous = await client.GetAsync(\"/api/profile\");\nAssert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);"
     }
   ]
 }

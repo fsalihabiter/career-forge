@@ -1,0 +1,52 @@
+{
+  "stableId": "react-request-race",
+  "version": 1,
+  "slug": "react-istek-yarislarini-onlemek",
+  "title": "React'te eski cevabın ekranı ezmesini önlemek",
+  "summary": "Hızla değişen filtrelerde istek kimliği ve iptal mekanizmasıyla yalnızca güncel cevabın state'i değiştirmesini sağla.",
+  "technologySlug": "react",
+  "level": "intermediate",
+  "estimatedMinutes": 17,
+  "status": "published",
+  "objectives": [
+    "İstek yarışını zaman çizelgesiyle açıklamak",
+    "AbortController yaşam döngüsünü doğru yönetmek",
+    "Loading ve error state'ini güncel istekle ilişkilendirmek"
+  ],
+  "prerequisites": ["React state ve effect bilgisi", "Fetch API kullanımı"],
+  "category": null,
+  "sections": [
+    {
+      "key": "yaris",
+      "title": "Sorun ağ hızından değil, sahiplikten doğar",
+      "order": 1,
+      "bodyMarkdown": "Kullanıcı A filtresini seçer ve ilk istek başlar. Hemen B filtresine geçtiğinde ikinci istek başlar; B hızlı tamamlanıp doğru sonucu gösterir. Daha yavaş olan A sonradan tamamlanır ve aynı state'i güncellerse ekran tekrar eski filtreye ait veriyi gösterir.\n\nBu bir backend sıralama hatası değildir. Arayüz, gelen cevabın hâlâ güncel kullanıcı niyetine ait olup olmadığını kanıtlamadan state değiştiriyordur.",
+      "codeLanguage": "typescript",
+      "codeSample": "setFilter('a'); // request A\nsetFilter('b'); // request B\n// B resolves, then A resolves and overwrites B"
+    },
+    {
+      "key": "iptal",
+      "title": "Effect temizliğinde önceki isteği iptal et",
+      "order": 2,
+      "bodyMarkdown": "Her effect çalışmasında yeni bir `AbortController` oluştur ve signal'ı fetch'e geçir. Filtre değiştiğinde React önceki effect'in cleanup fonksiyonunu çalıştırır; controller'ı burada iptal etmek artık gereksiz olan ağ ve ayrıştırma işini durdurur.\n\n`AbortError` kullanıcıya gösterilecek bir hata değildir. Bu sonuç, daha güncel bir isteğin öncekinin sahipliğini devraldığını anlatır.",
+      "codeLanguage": "typescript",
+      "codeSample": "useEffect(() => {\n  const controller = new AbortController();\n  loadLessons(filter, controller.signal)\n    .then(setLessons)\n    .catch(error => {\n      if (error.name !== 'AbortError') setError(error.message);\n    });\n  return () => controller.abort();\n}, [filter]);"
+    },
+    {
+      "key": "kimlik",
+      "title": "İptal yetmiyorsa istek kimliği kullan",
+      "order": 3,
+      "bodyMarkdown": "Bazı istemciler veya async zincirin fetch dışındaki adımları iptali tam desteklemeyebilir. Artan bir istek numarasını ref içinde tutup yalnızca son numarayla eşleşen cevabın state değiştirmesine izin vermek ikinci bir güvenlik katmanıdır.\n\nBu kontrolü veri, hata ve loading güncellemelerinin tamamına uygula. Aksi hâlde eski istek veriyi ezmese bile yeni istek tamamlandıktan sonra loading durumunu yanlışlıkla değiştirebilir.",
+      "codeLanguage": "typescript",
+      "codeSample": "const requestId = ++latestRequest.current;\nconst result = await loadLessons(filter);\nif (requestId === latestRequest.current) {\n  setLessons(result);\n  setLoading(false);\n}"
+    },
+    {
+      "key": "test",
+      "title": "Ters tamamlanma sırasını test et",
+      "order": 4,
+      "bodyMarkdown": "Mutlu yol testi iki isteğin başladığı sırada tamamlanmasına izin verirse yarışı kanıtlamaz. Testte A ve B için kontrol edilebilir promise'ler kullan; önce B'yi, sonra A'yı çöz ve ekranda B sonucunun kaldığını doğrula.\n\nMülakatta güçlü cevap yalnızca `AbortController kullanırım` demez. Yarışın zaman çizelgesini, state sahipliği kuralını ve ters tamamlanma sırasıyla yapılan testi birlikte açıklar.",
+      "codeLanguage": "typescript",
+      "codeSample": "resolveB([{ title: 'B sonucu' }]);\nawait screen.findByText('B sonucu');\nresolveA([{ title: 'A sonucu' }]);\nexpect(screen.queryByText('A sonucu')).not.toBeInTheDocument();"
+    }
+  ]
+}
