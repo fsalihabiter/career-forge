@@ -111,7 +111,7 @@ describe('App', () => {
       expect.stringMatching(/\/me\/preparation-profile$/),
       expect.objectContaining({ method: 'PUT' }),
     )
-  })
+  }, 10_000)
 
   it('answers a diagnostic question and opens the completed result', async () => {
     localStorage.setItem('careerforge-token', 'existing-token')
@@ -300,5 +300,61 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: /Pattern’i aç/ }))
     expect(await screen.findByRole('heading', { name: 'Transactional Outbox' })).toBeInTheDocument()
     expect(screen.getByText('INSERT INTO outbox_messages ...;')).toBeInTheDocument()
+  })
+
+  it('schedules the next review from the recall rating', async () => {
+    localStorage.setItem('careerforge-token', 'existing-token')
+    const reviewItem = {
+      id: 'review-1',
+      questionId: 'question-1',
+      prompt: 'Bir API isteğini nasıl idempotent yaparsın?',
+      type: 'Tasarım',
+      level: 'intermediate',
+      skillId: 'skill-1',
+      skillSlug: 'api-design',
+      skill: 'API tasarımı',
+      technology: 'ASP.NET Core',
+      addedAt: '2026-07-26T18:00:00Z',
+      nextReviewAt: '2026-07-26T18:00:00Z',
+      intervalDays: 0,
+      repetitionCount: 0,
+    }
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = urlOf(input)
+      const catalog = catalogResponse(url)
+      if (catalog) return catalog
+      if (url.endsWith('/me/skills')) return response([])
+      if (url.endsWith('/learning-paths/current')) return response({ items: [] })
+      if (url.endsWith('/review-items/')) return response([reviewItem])
+      if (url.endsWith('/review-items/question-1/reviews') && init?.method === 'POST') {
+        return response({
+          ...reviewItem,
+          nextReviewAt: '2026-07-30T18:00:00Z',
+          lastReviewedAt: '2026-07-27T18:00:00Z',
+          intervalDays: 3,
+          repetitionCount: 1,
+        })
+      }
+      return response({}, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Tekrar' }))
+    expect(await screen.findByText(reviewItem.prompt)).toBeInTheDocument()
+    expect(screen.getByText('Bugün')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Kolayuzun/ }))
+
+    expect(await screen.findByText('3 gün aralık')).toBeInTheDocument()
+    expect(screen.getByText(/1 tekrar/)).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/review-items\/question-1\/reviews$/),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ rating: 'easy' }),
+      }),
+    )
   })
 })

@@ -108,6 +108,11 @@ public sealed class ReviewItem
     public Guid UserId { get; set; }
     public Guid QuestionId { get; set; }
     public DateTimeOffset AddedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset NextReviewAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? LastReviewedAt { get; set; }
+    public int IntervalDays { get; set; }
+    public int RepetitionCount { get; set; }
+    public decimal EaseFactor { get; set; } = 2.5m;
     public Question Question { get; set; } = null!;
 }
 

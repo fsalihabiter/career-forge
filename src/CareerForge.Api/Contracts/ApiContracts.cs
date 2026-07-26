@@ -112,7 +112,13 @@ public sealed record ReviewItemResponse(
     string SkillSlug,
     string Skill,
     string? Technology,
-    DateTimeOffset AddedAt);
+    DateTimeOffset AddedAt,
+    DateTimeOffset NextReviewAt,
+    DateTimeOffset? LastReviewedAt,
+    int IntervalDays,
+    int RepetitionCount);
+
+public sealed record CompleteReviewRequest(string Rating);
 
 public sealed record PatternSummary(
     string StableId,

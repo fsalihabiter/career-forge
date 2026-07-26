@@ -66,6 +66,7 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<PlanningService>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<ContentImportService>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 if (!builder.Environment.IsEnvironment("Testing"))
 {

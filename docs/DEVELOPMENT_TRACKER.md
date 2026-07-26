@@ -6,11 +6,11 @@ işlenir.
 
 ## Şu anki durum
 
-- Son güncelleme: 2026-07-26
+- Son güncelleme: 2026-07-27
 - Aktif faz: Faz 3 — İlerleme ve tekrar
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-304 — Spaced repetition planı`
-- Son tamamlanan iş: `CF-303 — Tekrar listesi`
+- Sıradaki iş: `CF-305 — Kullanıcı dashboard'u`
+- Son tamamlanan iş: `CF-304 — Spaced repetition planı`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -21,7 +21,7 @@ işlenir.
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
 | 2. Öğrenme ve içerik MVP'si | 8 | 8 | Tamamlandı |
-| 3. İlerleme ve tekrar | 3 | 6 | Devam ediyor |
+| 3. İlerleme ve tekrar | 4 | 6 | Devam ediyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
 | 6. Gelişmiş deneyim | 0 | 6 | Bekliyor |
@@ -71,8 +71,8 @@ işlenir.
 | CF-301 | Tamamlandı | Ders ilerleme kaydı | CF-204 | Kullanıcı kaldığı yerden farklı cihazda devam eder |
 | CF-302 | Tamamlandı | Beceri bazlı gelişim hesabı | CF-207 | Ölçülen seviye ve güven skoru geçmişi korunur |
 | CF-303 | Tamamlandı | Tekrar listesi | CF-302 | Soru ekleme, çıkarma ve filtreleme yapılır |
-| CF-304 | Sıradaki | Spaced repetition planı | CF-303 | Sonraki tekrar tarihi hesaplanır |
-| CF-305 | Bekliyor | Kullanıcı dashboard'u | CF-301–304 | Sıradaki çalışma, zayıf alan ve son sonuç görünür |
+| CF-304 | Tamamlandı | Spaced repetition planı | CF-303 | Sonraki tekrar tarihi hesaplanır |
+| CF-305 | Sıradaki | Kullanıcı dashboard'u | CF-301–304 | Sıradaki çalışma, zayıf alan ve son sonuç görünür |
 | CF-306 | Bekliyor | Erişilebilirlik ve responsive kabul turu | CF-305 | Temel akışlarda klavye, mobil ve taşma sorunları giderilir |
 
 ### Faz 4 — Yönetim ve içerik yaşam döngüsü
@@ -497,6 +497,32 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
   uyarısını üretmektedir.
 - Gerçek PostgreSQL smoke testinde soru iki kez eklendiğinde aynı kayıt döndü,
   beceri filtresi tek kaydı buldu, silme sonrasında liste `[]` oldu ve web 200 döndü.
+
+### 2026-07-27 — CF-304 başlatıldı
+
+- Tekrar sorularına kullanıcının hatırlama kalitesine göre yeni aralık ve sonraki
+  çalışma tarihi hesaplayan kalıcı planlama akışına başlandı.
+
+### 2026-07-27 — CF-304 tamamlandı
+
+- Tekrar kaydı; son çalışma, sonraki çalışma, gün aralığı, tekrar sayısı ve
+  uyarlanabilir kolaylık katsayısını kalıcı olarak saklıyor.
+- Tekrar, zor, iyi ve kolay sonuçları için başarısızlıkta sıfırlanan, başarılı
+  hatırlamada kontrollü büyüyen deterministik aralık algoritması eklendi.
+- Kullanıcıya ait zamanlama endpoint'i geçersiz sonuçları reddediyor, yabancı hesap
+  kayıtlarını gizliyor ve hesaplanan yeni planı tek işlemde kaydedip döndürüyor.
+- Mevcut tekrar kayıtları ilk eklenme tarihinde çalışılacak biçimde geriye uyumlu
+  taşındı; yeni PostgreSQL migration'ı kolaylık başlangıcını 2,5 olarak kuruyor.
+- Tekrar defteri bugün/planlandı filtresi, sıradaki tarih damgası ve dört kademeli
+  hatırlama şeridiyle bir çalışma takvimine dönüştürüldü.
+- Aralık hesabı, geçersiz sonuç ve hesap izolasyonu integration testiyle; kolay
+  değerlendirmeden sonra tarih/aralık güncellemesi component testiyle doğrulandı.
+- Backend testleri 26/26, frontend testleri 5/5, çözüm ve production/container
+  build başarılıdır; lint yalnızca önceden bilinen engelleyici olmayan `useEffect`
+  uyarısını üretmektedir.
+- Gerçek PostgreSQL smoke testinde ilk kayıt 0 günle başladı, iyi sonucu 1 güne,
+  ardından kolay sonucu 7 güne ve iki tekrara taşıdı; sonraki tarih son çalışmadan
+  tam 7 gün sonrası oldu ve web 200 döndü.
 
 ## Karar günlüğü
 

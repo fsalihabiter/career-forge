@@ -549,6 +549,7 @@ public static class ReviewEndpoints
             Guid questionId,
             ClaimsPrincipal principal,
             AppDbContext db,
+            TimeProvider timeProvider,
             CancellationToken ct) =>
         {
             var question = await db.Questions
@@ -572,11 +573,42 @@ public static class ReviewEndpoints
                     Id = Guid.NewGuid(),
                     UserId = userId,
                     QuestionId = questionId,
+                    AddedAt = timeProvider.GetUtcNow(),
+                    NextReviewAt = timeProvider.GetUtcNow(),
                     Question = question
                 };
                 db.ReviewItems.Add(item);
                 await db.SaveChangesAsync(ct);
             }
+            return Results.Ok(ToResponse(item));
+        });
+
+        group.MapPost("/{questionId:guid}/reviews", async (
+            Guid questionId,
+            CompleteReviewRequest request,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            TimeProvider timeProvider,
+            CancellationToken ct) =>
+        {
+            var rating = request.Rating.Trim().ToLowerInvariant();
+            if (rating is not ("again" or "hard" or "good" or "easy"))
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["rating"] = ["Tekrar sonucu again, hard, good veya easy olmalıdır."]
+                });
+
+            var item = await db.ReviewItems
+                .Include(x => x.Question).ThenInclude(x => x.Skill)
+                .Include(x => x.Question).ThenInclude(x => x.Technology)
+                .SingleOrDefaultAsync(
+                    x => x.UserId == principal.UserId() && x.QuestionId == questionId,
+                    ct);
+            if (item is null) return Results.NotFound();
+
+            var now = timeProvider.GetUtcNow();
+            ApplySchedule(item, rating, now);
+            await db.SaveChangesAsync(ct);
             return Results.Ok(ToResponse(item));
         });
 
@@ -607,5 +639,46 @@ public static class ReviewEndpoints
             item.Question.Skill.Slug,
             item.Question.Skill.Name,
             item.Question.Technology?.Name,
-            item.AddedAt);
+            item.AddedAt,
+            item.NextReviewAt,
+            item.LastReviewedAt,
+            item.IntervalDays,
+            item.RepetitionCount);
+
+    private static void ApplySchedule(
+        ReviewItem item,
+        string rating,
+        DateTimeOffset reviewedAt)
+    {
+        item.IntervalDays = rating switch
+        {
+            "again" => 1,
+            "hard" => Math.Max(1, (int)Math.Round(
+                Math.Max(1, item.IntervalDays) * 1.2m,
+                MidpointRounding.AwayFromZero)),
+            "good" when item.RepetitionCount == 0 => 1,
+            "good" when item.RepetitionCount == 1 => 3,
+            "good" => Math.Max(1, (int)Math.Round(
+                item.IntervalDays * item.EaseFactor,
+                MidpointRounding.AwayFromZero)),
+            "easy" when item.RepetitionCount == 0 => 3,
+            "easy" when item.RepetitionCount == 1 => 7,
+            _ => Math.Max(1, (int)Math.Round(
+                item.IntervalDays * item.EaseFactor * 1.3m,
+                MidpointRounding.AwayFromZero))
+        };
+        item.RepetitionCount = rating == "again" ? 0 : item.RepetitionCount + 1;
+        item.EaseFactor = Math.Clamp(
+            item.EaseFactor + rating switch
+            {
+                "again" => -0.2m,
+                "hard" => -0.15m,
+                "easy" => 0.15m,
+                _ => 0m
+            },
+            1.3m,
+            3m);
+        item.LastReviewedAt = reviewedAt;
+        item.NextReviewAt = reviewedAt.AddDays(item.IntervalDays);
+    }
 }

@@ -98,6 +98,10 @@ type ReviewItem = {
   skill: string
   technology?: string
   addedAt: string
+  nextReviewAt: string
+  lastReviewedAt?: string
+  intervalDays: number
+  repetitionCount: number
 }
 
 const levelLabels: Record<string, string> = {
@@ -299,6 +303,14 @@ function App() {
     setReviewItems(current => current.filter(x => x.questionId !== questionId))
   }
 
+  const completeReviewItem = async (questionId: string, rating: string) => {
+    const item = await api<ReviewItem>(`/review-items/${questionId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify({ rating }),
+    })
+    setReviewItems(current => current.map(x => x.questionId === questionId ? item : x))
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -381,6 +393,7 @@ function App() {
             items={reviewItems}
             loading={loading}
             onRemove={removeReviewItem}
+            onReview={completeReviewItem}
             onPractice={() => startSession('interview')}
           />
         )}
@@ -1034,17 +1047,25 @@ function ResultScreen({ result, onAddReview, onDone }: {
   )
 }
 
-function ReviewScreen({ items, loading, onRemove, onPractice }: {
+function ReviewScreen({ items, loading, onRemove, onReview, onPractice }: {
   items: ReviewItem[]
   loading: boolean
   onRemove: (questionId: string) => Promise<void>
+  onReview: (questionId: string, rating: string) => Promise<void>
   onPractice: () => void
 }) {
   const [skill, setSkill] = useState('')
   const [level, setLevel] = useState('')
+  const [schedule, setSchedule] = useState('')
   const [removing, setRemoving] = useState('')
+  const [reviewing, setReviewing] = useState('')
   const skills = [...new Map(items.map(item => [item.skillSlug, item.skill])).entries()]
-  const visible = items.filter(item => (!skill || item.skillSlug === skill) && (!level || item.level === level))
+  const now = Date.now()
+  const visible = items.filter(item =>
+    (!skill || item.skillSlug === skill)
+    && (!level || item.level === level)
+    && (!schedule || (schedule === 'due' ? new Date(item.nextReviewAt).getTime() <= now : new Date(item.nextReviewAt).getTime() > now)))
+  const dueCount = items.filter(item => new Date(item.nextReviewAt).getTime() <= now).length
 
   const remove = async (questionId: string) => {
     setRemoving(questionId)
@@ -1055,11 +1076,20 @@ function ReviewScreen({ items, loading, onRemove, onPractice }: {
     }
   }
 
+  const review = async (questionId: string, rating: string) => {
+    setReviewing(`${questionId}:${rating}`)
+    try {
+      await onReview(questionId, rating)
+    } finally {
+      setReviewing('')
+    }
+  }
+
   return (
     <section className="review-page">
       <header className="review-hero">
         <div><span className="eyebrow">GERİ DÖNÜŞ KUYRUĞU</span><h1>Bir kez cevapladın.<br /><em>Şimdi sağlamlaştır.</em></h1></div>
-        <p>Zorlandığın veya farklı bir yaklaşımla yeniden kurmak istediğin soruları burada tut. Listeyi küçük ve niyetli bırak.</p>
+        <p>Bugün sıran gelen {dueCount} soru var. Hatırlama kaliteni işaretle; çalışma takvimi bir sonraki aralığı kendisi kursun.</p>
       </header>
       <div className="review-layout">
         <aside className="review-filters">
@@ -1074,6 +1104,13 @@ function ReviewScreen({ items, loading, onRemove, onPractice }: {
             <select value={level} onChange={event => setLevel(event.target.value)}>
               <option value="">Tüm seviyeler</option>
               {Object.entries(levelLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+          <label>Zaman
+            <select value={schedule} onChange={event => setSchedule(event.target.value)}>
+              <option value="">Tüm sorular</option>
+              <option value="due">Bugün çalış</option>
+              <option value="upcoming">Planlandı</option>
             </select>
           </label>
         </aside>
@@ -1094,11 +1131,33 @@ function ReviewScreen({ items, loading, onRemove, onPractice }: {
               <div>
                 <div className="question-meta"><span>{item.skill}</span><span>{levelLabels[item.level] ?? item.level}</span>{item.technology && <span>{item.technology}</span>}</div>
                 <h2>{item.prompt}</h2>
-                <small>{item.type} · {new Date(item.addedAt).toLocaleDateString('tr-TR')}</small>
+                <small>{item.type} · {item.repetitionCount ? `${item.repetitionCount} tekrar` : 'Henüz çalışılmadı'}</small>
+                <div className="review-rating" aria-label="Hatırlama kalitesi">
+                  {[
+                    ['again', 'Tekrar', '1 gün'],
+                    ['hard', 'Zor', 'kısa'],
+                    ['good', 'İyi', 'normal'],
+                    ['easy', 'Kolay', 'uzun'],
+                  ].map(([value, label, hint]) => (
+                    <button
+                      key={value}
+                      disabled={Boolean(reviewing)}
+                      onClick={() => review(item.questionId, value)}
+                    >
+                      <b>{reviewing === `${item.questionId}:${value}` ? '…' : label}</b>
+                      <span>{hint}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <button disabled={removing === item.questionId} onClick={() => remove(item.questionId)}>
-                {removing === item.questionId ? 'Çıkarılıyor…' : 'Listeden çıkar'}
-              </button>
+              <div className={`review-date ${new Date(item.nextReviewAt).getTime() <= now ? 'is-due' : ''}`}>
+                <small>SONRAKİ</small>
+                <b>{new Date(item.nextReviewAt).getTime() <= now ? 'Bugün' : new Date(item.nextReviewAt).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}</b>
+                <span>{item.intervalDays ? `${item.intervalDays} gün aralık` : 'ilk tekrar'}</span>
+                <button disabled={removing === item.questionId} onClick={() => remove(item.questionId)}>
+                  {removing === item.questionId ? 'Çıkarılıyor…' : 'Listeden çıkar'}
+                </button>
+              </div>
             </article>
           ))}
         </div>

@@ -44,6 +44,38 @@ public sealed class ReviewItemTests(CareerForgeApiFactory factory)
         Assert.NotNull(firstItem);
         Assert.NotNull(repeatedItem);
         Assert.Equal(firstItem.Id, repeatedItem.Id);
+        Assert.Equal(0, firstItem.IntervalDays);
+        Assert.Equal(0, firstItem.RepetitionCount);
+
+        var firstReviewResponse = await owner.PostAsJsonAsync(
+            $"/api/review-items/{questionId}/reviews",
+            new CompleteReviewRequest("good"));
+        var firstReview = await firstReviewResponse.Content
+            .ReadFromJsonAsync<ReviewItemResponse>();
+        Assert.Equal(HttpStatusCode.OK, firstReviewResponse.StatusCode);
+        Assert.NotNull(firstReview);
+        Assert.Equal(1, firstReview.IntervalDays);
+        Assert.Equal(1, firstReview.RepetitionCount);
+        Assert.Equal(
+            firstReview.LastReviewedAt!.Value.AddDays(1),
+            firstReview.NextReviewAt);
+
+        var secondReviewResponse = await owner.PostAsJsonAsync(
+            $"/api/review-items/{questionId}/reviews",
+            new CompleteReviewRequest("easy"));
+        var secondReview = await secondReviewResponse.Content
+            .ReadFromJsonAsync<ReviewItemResponse>();
+        Assert.NotNull(secondReview);
+        Assert.Equal(7, secondReview.IntervalDays);
+        Assert.Equal(2, secondReview.RepetitionCount);
+        Assert.Equal(
+            secondReview.LastReviewedAt!.Value.AddDays(7),
+            secondReview.NextReviewAt);
+
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await owner.PostAsJsonAsync(
+                $"/api/review-items/{questionId}/reviews",
+                new CompleteReviewRequest("unknown"))).StatusCode);
 
         var bySkill = await owner.GetFromJsonAsync<List<ReviewItemResponse>>(
             $"/api/review-items/?skill={skillSlug}");
@@ -60,6 +92,10 @@ public sealed class ReviewItemTests(CareerForgeApiFactory factory)
             "/api/review-items/"))!);
         Assert.Equal(HttpStatusCode.NotFound,
             (await other.DeleteAsync($"/api/review-items/{questionId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await other.PostAsJsonAsync(
+                $"/api/review-items/{questionId}/reviews",
+                new CompleteReviewRequest("good"))).StatusCode);
 
         Assert.Equal(HttpStatusCode.NoContent,
             (await owner.DeleteAsync($"/api/review-items/{questionId}")).StatusCode);
