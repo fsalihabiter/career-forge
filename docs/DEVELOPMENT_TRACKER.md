@@ -7,10 +7,10 @@ işlenir.
 ## Şu anki durum
 
 - Son güncelleme: 2026-07-26
-- Aktif faz: Faz 1 — Çalışan dikey dilimi güvenceye alma
+- Aktif faz: Faz 2 — Öğrenme ve içerik MVP'si
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-106 — Frontend kritik akış testleri`
-- Son tamamlanan iş: `CF-105 — Frontend test altyapısı`
+- Sıradaki iş: `CF-201 — Versiyonlanabilir içerik şeması`
+- Son tamamlanan iş: `CF-106 — Frontend kritik akış testleri`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -19,7 +19,7 @@ işlenir.
 | Faz | Tamamlandı | Toplam | Durum |
 | --- | ---: | ---: | --- |
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
-| 1. Dikey dilimi güvenceye alma | 6 | 7 | Devam ediyor |
+| 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
 | 2. Öğrenme ve içerik MVP'si | 0 | 8 | Bekliyor |
 | 3. İlerleme ve tekrar | 0 | 6 | Bekliyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
@@ -49,7 +49,7 @@ işlenir.
 | CF-103 | Tamamlandı | Kimlik ve yetkilendirme integration testleri | CF-102 | Kayıt/giriş, 401 ve kullanıcı veri izolasyonu test edilir |
 | CF-104 | Tamamlandı | Oturum akışı integration testleri | CF-102 | Başlat, cevapla, tamamla ve sonuç akışı test edilir |
 | CF-105 | Tamamlandı | Frontend test altyapısı | CF-101 | Vitest + React Testing Library yapılandırılır |
-| CF-106 | Sıradaki | Frontend kritik akış testleri | CF-105 | Onboarding ve soru çözme davranışı test edilir |
+| CF-106 | Tamamlandı | Frontend kritik akış testleri | CF-105 | Onboarding ve soru çözme davranışı test edilir |
 
 ### Faz 2 — Öğrenme ve içerik MVP'si
 
@@ -226,6 +226,25 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
   doğrulayan ilk component smoke testi eklendi ve geçti.
 - TypeScript/Vite production build ve Oxlint başarılıdır; lint mevcut
   `useEffect` bağımlılığı için engelleyici olmayan bir uyarı üretmektedir.
+
+### 2026-07-26 — CF-106 başlatıldı
+
+- Kayıttan profil tamamlamaya uzanan onboarding ve tanılamadan sonuç ekranına
+  uzanan soru çözme akışlarının component testlerine başlandı.
+
+### 2026-07-26 — CF-106 tamamlandı
+
+- Kayıt formunun token kaydedip onboarding ekranına geçmesi, dört onboarding
+  adımının tamamlanması ve kişisel rota ekranının açılması kullanıcı etkileşimiyle
+  test edildi.
+- Mevcut oturumla dashboard'un yüklenmesi, tanılamanın başlatılması, cevabın
+  yazılması, oturumun tamamlanması ve model cevaplı sonuç ekranının açılması test
+  edildi.
+- API istekleri URL ve HTTP metoduna göre kontrollü yanıtlarla izole edildi;
+  testler arasında fetch, DOM ve localStorage temizliği sağlandı.
+- Frontend component testlerinin 3/3'ü, TypeScript/Vite production build ve
+  Oxlint başarılıdır; mevcut `useEffect` uyarısı engelleyici değildir.
+- Faz 1'in yedi işi tamamlandı ve geliştirme sırası Faz 2 içerik şemasına geçti.
 
 ## Karar günlüğü
 
