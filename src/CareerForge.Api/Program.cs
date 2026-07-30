@@ -128,6 +128,7 @@ ProfileEndpoints.Map(api);
 ReviewEndpoints.Map(api);
 SessionEndpoints.Map(api);
 AdministrationEndpoints.Map(api);
+AdminContentEndpoints.Map(api);
 
 if (!app.Environment.IsEnvironment("Testing"))
 {

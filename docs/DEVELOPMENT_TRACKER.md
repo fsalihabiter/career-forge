@@ -6,11 +6,11 @@ işlenir.
 
 ## Şu anki durum
 
-- Son güncelleme: 2026-07-30
+- Son güncelleme: 2026-07-31
 - Aktif faz: Faz 4 — Yönetim ve içerik yaşam döngüsü
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-402 — İçerik yönetimi API'si`
-- Son tamamlanan iş: `CF-401 — Rol ve policy tabanlı yetkilendirme`
+- Sıradaki iş: `CF-403 — Admin içerik arayüzü`
+- Son tamamlanan iş: `CF-402 — İçerik yönetimi API'si`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -22,7 +22,7 @@ işlenir.
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
 | 2. Öğrenme ve içerik MVP'si | 8 | 8 | Tamamlandı |
 | 3. İlerleme ve tekrar | 6 | 6 | Tamamlandı |
-| 4. Yönetim ve içerik yaşam döngüsü | 1 | 6 | Devam ediyor |
+| 4. Yönetim ve içerik yaşam döngüsü | 2 | 6 | Devam ediyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
 | 6. Gelişmiş deneyim | 0 | 6 | Bekliyor |
 
@@ -80,8 +80,8 @@ işlenir.
 | ID | Durum | İş | Bağımlılık | Kabul özeti |
 | --- | --- | --- | --- | --- |
 | CF-401 | Tamamlandı | Rol ve policy tabanlı yetkilendirme | CF-103 | Öğrenci ve yönetici yetkileri API seviyesinde ayrılır |
-| CF-402 | Sıradaki | İçerik yönetimi API'si | CF-401, CF-202 | İçerik CRUD ve doğrulama akışları hazırdır |
-| CF-403 | Bekliyor | Admin içerik arayüzü | CF-402 | Ders, soru, rubric ve pattern yönetilir |
+| CF-402 | Tamamlandı | İçerik yönetimi API'si | CF-401, CF-202 | İçerik CRUD ve doğrulama akışları hazırdır |
+| CF-403 | Sıradaki | Admin içerik arayüzü | CF-402 | Ders, soru, rubric ve pattern yönetilir |
 | CF-404 | Bekliyor | Taslak–inceleme–yayın akışı | CF-403 | Yayın durumu ve yetki kontrolleri vardır |
 | CF-405 | Bekliyor | İçerik versiyonlama | CF-404 | Eski cevap doğru içerik/rubric sürümüyle eşleşir |
 | CF-406 | Bekliyor | İçerik kalite kontrolleri | CF-405 | Şema, bağlantı ve zorunlu alan kontrolleri CI'da çalışır |
@@ -122,6 +122,26 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
 5. Bu dosyada durum, tarih ve çalışma günlüğü güncellendi.
 
 ## Çalışma günlüğü
+
+### 2026-07-31 — CF-402 başlatıldı
+
+- Ders, pattern, soru ve rubric içerikleri için yönetici yetkili CRUD ve doğrulama
+  akışlarının geliştirilmesine başlandı.
+
+### 2026-07-31 — CF-402 tamamlandı
+
+- Ders, pattern, rubric ve soru içerikleri için yönetici policy'si altında
+  listeleme, detay, oluşturma, güncelleme ve silme endpoint'leri eklendi.
+- Stable ID/sürüm ve slug çakışmaları; zorunlu alanlar, bölüm/boyut
+  benzersizliği, rubric ağırlığı ve katalog/rubric referansları doğrulanıyor.
+- Kullanıcı verilerinin referans verdiği sorular ile soruların kullandığı
+  rubric'ler güvenli biçimde silinmeye karşı korunuyor.
+- Öğrenci erişim reddi, dört içerik türünün CRUD akışı, güncelleme, doğrulama ve
+  referans bütünlüğü HTTP seviyesinde integration testleriyle doğrulandı.
+- Backend testleri 32/32, frontend testleri 7/7 geçti; Release çözüm build'i,
+  frontend production build'i ve lint uyarısız tamamlandı.
+- Şema değişikliği gerekmedi; mevcut sürümlü içerik tabloları kullanıldı ve
+  geliştirme sırası CF-403 admin içerik arayüzüne taşındı.
 
 ### 2026-07-26 — Takip sistemi kuruldu
 
