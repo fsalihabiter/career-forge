@@ -211,7 +211,7 @@ describe('App', () => {
     expect(screen.getByText('76.5')).toBeInTheDocument()
     expect(screen.getByText('Teknik doğruluk')).toBeInTheDocument()
     expect(screen.getByText(/Öz değerlendirmen: 50/)).toBeInTheDocument()
-    expect(screen.getByLabelText('Teknik doğruluk puanı 80')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Teknik doğruluk puanı' })).toHaveAttribute('aria-valuenow', '80')
     await user.click(screen.getByRole('button', { name: '+ Tekrar listesine ekle' }))
     expect(await screen.findByRole('button', { name: '✓ Tekrar listesinde' })).toBeDisabled()
   }, 10_000)
@@ -355,7 +355,7 @@ describe('App', () => {
     expect(await screen.findByText(reviewItem.prompt)).toBeInTheDocument()
     expect(screen.getByText('Bugün')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /Kolayuzun/ }))
+    await user.click(screen.getByRole('button', { name: 'Kolay, uzun' }))
 
     expect(await screen.findByText('3 gün aralık')).toBeInTheDocument()
     expect(screen.getByText(/1 tekrar/)).toBeInTheDocument()
@@ -413,5 +413,36 @@ describe('App', () => {
     expect(screen.getByText('68.5 / 100')).toBeInTheDocument()
     expect(screen.getByText('8 cevap · Tanılama')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()
+  })
+
+  it('supports keyboard entry, semantic tabs and focus after screen changes', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = urlOf(input)
+      if (url.endsWith('/learning/technologies')) return response([])
+      if (url.endsWith('/learning/lessons')) return response([])
+      if (url.endsWith('/learning/patterns')) return response([])
+      return catalogResponse(url) ?? response({}, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    await user.tab()
+    const skipLink = screen.getByRole('link', { name: 'Ana içeriğe geç' })
+    expect(skipLink).toHaveFocus()
+    await user.click(skipLink)
+    expect(screen.getByRole('main')).toHaveFocus()
+
+    const registerTab = screen.getByRole('tab', { name: 'Hesap oluştur' })
+    const loginTab = screen.getByRole('tab', { name: 'Giriş yap' })
+    expect(registerTab).toHaveAttribute('aria-selected', 'true')
+    await user.click(loginTab)
+    expect(loginTab).toHaveAttribute('aria-selected', 'true')
+
+    await user.click(screen.getByRole('button', { name: 'Rehber' }))
+    expect(await screen.findByRole('heading', { name: 'Ders kataloğu' })).toBeInTheDocument()
+    expect(screen.getByRole('main')).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Rehber' })).toHaveAttribute('aria-current', 'page')
   })
 })

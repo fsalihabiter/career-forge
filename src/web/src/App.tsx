@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
 
@@ -176,6 +176,7 @@ function App() {
   const [learningTechnology, setLearningTechnology] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const previousScreen = useRef(screen)
 
   const loadCatalog = async () => {
     const [technologies, skills, specializations] = await Promise.all([
@@ -204,8 +205,15 @@ function App() {
 
   useEffect(() => {
     loadCatalog().catch(() => setMessage('Katalog yüklenemedi. API servisinin çalıştığını kontrol edin.'))
-    if (screen === 'dashboard') loadDashboard()
+    if (localStorage.getItem('careerforge-token')) loadDashboard()
   }, [])
+
+  useEffect(() => {
+    if (previousScreen.current !== screen) {
+      document.getElementById('main-content')?.focus()
+      previousScreen.current = screen
+    }
+  }, [screen])
 
   const startSession = async (kind: 'diagnostic' | 'interview') => {
     setLoading(true)
@@ -334,15 +342,16 @@ function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content" onClick={() => document.getElementById('main-content')?.focus()}>Ana içeriğe geç</a>
       <header className="topbar">
         <button className="brand" onClick={() => setScreen(authenticated ? 'dashboard' : 'auth')} aria-label="CareerForge ana sayfa">
           <span className="brand-mark">CF</span>
           <span><strong>CareerForge</strong><small>Mülakat çalışma sistemi</small></span>
         </button>
         <nav aria-label="Ana menü">
-          {authenticated && <button className={screen === 'dashboard' ? 'nav-active' : ''} onClick={() => { setScreen('dashboard'); loadDashboard() }}>Rotam</button>}
-          <button className={screen === 'learning' || screen === 'lesson' ? 'nav-active' : ''} onClick={() => openLearning()}>Rehber</button>
-          {authenticated && <button className={screen === 'review' ? 'nav-active' : ''} onClick={openReview}>Tekrar</button>}
+          {authenticated && <button aria-current={screen === 'dashboard' ? 'page' : undefined} className={screen === 'dashboard' ? 'nav-active' : ''} onClick={() => { setScreen('dashboard'); loadDashboard() }}>Rotam</button>}
+          <button aria-current={screen === 'learning' || screen === 'lesson' ? 'page' : undefined} className={screen === 'learning' || screen === 'lesson' ? 'nav-active' : ''} onClick={() => openLearning()}>Rehber</button>
+          {authenticated && <button aria-current={screen === 'review' ? 'page' : undefined} className={screen === 'review' ? 'nav-active' : ''} onClick={openReview}>Tekrar</button>}
           {authenticated && <button onClick={() => startSession('interview')}>Mülakat</button>}
           {authenticated && <button onClick={logout}>Çıkış</button>}
           {!authenticated && screen !== 'auth' && <button onClick={() => setScreen('auth')}>Giriş yap</button>}
@@ -351,7 +360,7 @@ function App() {
 
       {message && <div className="notice" role="status">{message}<button onClick={() => setMessage('')}>Kapat</button></div>}
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         {screen === 'auth' && <AuthScreen onAuthenticated={(onboarded) => setScreen(onboarded ? 'dashboard' : 'onboarding')} />}
         {screen === 'onboarding' && (
           <Onboarding
@@ -560,7 +569,7 @@ function LessonReader({ lesson, progress, canTrack, onProgress, onBack }: {
                 <span>{progress.completed ? 'DERS TAMAMLANDI' : 'OKUMA İLERLEMESİ'}</span>
                 <b>{progress.completedSections} / {progress.totalSections} bölüm</b>
               </div>
-              <div className="reader-progress-track" aria-label={`Ders ilerlemesi yüzde ${percent}`}><i style={{ width: `${percent}%` }} /></div>
+              <div className="reader-progress-track" role="progressbar" aria-label="Ders ilerlemesi" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><i style={{ width: `${percent}%` }} /></div>
             </div>
           )}
         </div>
@@ -675,9 +684,9 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (onboarded: boolean)
         </div>
       </div>
       <div className="auth-panel">
-        <div className="auth-tabs" role="tablist">
-          <button className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>Hesap oluştur</button>
-          <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>Giriş yap</button>
+        <div className="auth-tabs" role="tablist" aria-label="Hesap işlemi">
+          <button role="tab" aria-selected={mode === 'register'} className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>Hesap oluştur</button>
+          <button role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>Giriş yap</button>
         </div>
         <form onSubmit={submit}>
           <div>
@@ -687,7 +696,7 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (onboarded: boolean)
           {mode === 'register' && <label>Adın<input name="displayName" autoComplete="name" required placeholder="Fatima Saliha" /></label>}
           <label>E-posta<input name="email" type="email" autoComplete="email" required placeholder="sen@ornek.com" /></label>
           <label>Parola<input name="password" type="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} required minLength={8} placeholder="En az 8 karakter" /></label>
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
           <button className="primary wide" disabled={busy}>{busy ? 'Hazırlanıyor…' : mode === 'register' ? 'Yetkinliklerimi seç' : 'Rotamı aç'}</button>
           <p className="privacy-note">Cevaplarına parola veya gerçek proje verisi yazma. Tam cevap metinleri operasyon loglarına alınmaz.</p>
         </form>
@@ -751,9 +760,9 @@ function Onboarding({ catalog, onDone, onError }: {
 
   return (
     <section className="onboarding">
-      <div className="stepper">
+      <div className="stepper" role="list" aria-label="Profil adımları">
         {['Hedef', 'Deneyim', 'Alanlar', 'Kontrol'].map((label, index) => (
-          <div className={step >= index + 1 ? 'step-active' : ''} key={label}>
+          <div role="listitem" aria-current={step === index + 1 ? 'step' : undefined} className={step >= index + 1 ? 'step-active' : ''} key={label}>
             <span>{index + 1}</span><b>{label}</b>
           </div>
         ))}
@@ -766,7 +775,7 @@ function Onboarding({ catalog, onDone, onError }: {
           <p className="lead">Bu seçim yalnızca ilk rotanı belirler. İlerleme geçmişin korunarak daha sonra değiştirebilirsin.</p>
           <div className="choice-grid">
             {sources.map(item => (
-              <button key={item.id} className={`choice-card ${source === item.id ? 'selected' : ''}`} onClick={() => setSource(item.id)}>
+              <button aria-pressed={source === item.id} key={item.id} className={`choice-card ${source === item.id ? 'selected' : ''}`} onClick={() => setSource(item.id)}>
                 <span className="choice-radio" />
                 <strong>{item.label}</strong>
                 <small>{item.copy}</small>
@@ -799,7 +808,7 @@ function Onboarding({ catalog, onDone, onError }: {
           {source === 'specialization' && (
             <div className="specialization-row">
               {catalog.specializations.map(spec => (
-                <button key={spec.id} className={`spec-card ${selectedSpecs.includes(spec.id) ? 'selected' : ''}`} onClick={() => chooseSpec(spec)}>
+                <button aria-pressed={selectedSpecs.includes(spec.id)} key={spec.id} className={`spec-card ${selectedSpecs.includes(spec.id) ? 'selected' : ''}`} onClick={() => chooseSpec(spec)}>
                   <strong>{spec.name}</strong><span>{spec.description}</span><small>{spec.skills.length} yetkinlik</small>
                 </button>
               ))}
@@ -810,7 +819,7 @@ function Onboarding({ catalog, onDone, onError }: {
               <h3>Teknoloji ekosistemi <span>{selectedTech.length}</span></h3>
               <div className="tag-grid">
                 {catalog.technologies.map(tech => (
-                  <button key={tech.id} onClick={() => toggleTech(tech.id)} className={selectedTech.includes(tech.id) ? 'tag selected' : 'tag'}>
+                  <button aria-pressed={selectedTech.includes(tech.id)} key={tech.id} onClick={() => toggleTech(tech.id)} className={selectedTech.includes(tech.id) ? 'tag selected' : 'tag'}>
                     <i style={{ background: tech.accent }} />{tech.name}<small>{tech.maturity}</small>
                   </button>
                 ))}
@@ -821,7 +830,7 @@ function Onboarding({ catalog, onDone, onError }: {
               <div className="skill-list">
                 {catalog.skills.map(skill => (
                   <div className={`skill-option ${selectedSkills[skill.id] ? 'selected' : ''}`} key={skill.id}>
-                    <button onClick={() => toggleSkill(skill.id)}><span className="check-box">{selectedSkills[skill.id] ? '✓' : ''}</span><b>{skill.name}</b><small>{skill.description}</small></button>
+                    <button aria-pressed={Boolean(selectedSkills[skill.id])} onClick={() => toggleSkill(skill.id)}><span aria-hidden="true" className="check-box">{selectedSkills[skill.id] ? '✓' : ''}</span><b>{skill.name}</b><small>{skill.description}</small></button>
                     {selectedSkills[skill.id] && (
                       <select aria-label={`${skill.name} öz değerlendirme`} value={selectedSkills[skill.id]} onChange={e => setSelectedSkills({ ...selectedSkills, [skill.id]: e.target.value as Level })}>
                         {Object.entries(levelLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -1028,7 +1037,7 @@ function SessionScreen({ session, onCancel, onComplete, onError }: {
         <button className="text-button" onClick={onCancel}>← Rotaya dön</button>
         <div><span>{session.kind === 'diagnostic' ? 'Tanılama' : 'Mülakat provası'}</span><b>{index + 1} / {session.questions.length}</b></div>
       </div>
-      <div className="progress-line"><i style={{ width: `${progress}%` }} /></div>
+      <div className="progress-line" role="progressbar" aria-label="Oturum ilerlemesi" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><i style={{ width: `${progress}%` }} /></div>
       <div className="session-layout">
         <article className="question-panel">
           <div className="question-meta"><span>{current.type}</span><span>{levelLabels[current.level] ?? current.level}</span><span>{current.technology ?? 'Teknolojiden bağımsız'}</span></div>
@@ -1089,7 +1098,7 @@ function ResultScreen({ result, onAddReview, onDone }: {
                     {question.evaluation.dimensions.map(dimension => (
                       <article key={dimension.key}>
                         <header><b>{dimension.label}</b><span>{dimension.score} / 100 · %{dimension.weight}</span></header>
-                        <div className="rubric-meter" aria-label={`${dimension.label} puanı ${dimension.score}`}><i style={{ width: `${dimension.score}%` }} /></div>
+                        <div className="rubric-meter" role="progressbar" aria-label={`${dimension.label} puanı`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={dimension.score}><i style={{ width: `${dimension.score}%` }} /></div>
                         <p>{dimension.feedback}</p>
                       </article>
                     ))}
@@ -1199,7 +1208,7 @@ function ReviewScreen({ items, loading, onRemove, onReview, onPractice }: {
                 <div className="question-meta"><span>{item.skill}</span><span>{levelLabels[item.level] ?? item.level}</span>{item.technology && <span>{item.technology}</span>}</div>
                 <h2>{item.prompt}</h2>
                 <small>{item.type} · {item.repetitionCount ? `${item.repetitionCount} tekrar` : 'Henüz çalışılmadı'}</small>
-                <div className="review-rating" aria-label="Hatırlama kalitesi">
+                <div className="review-rating" role="group" aria-label="Hatırlama kalitesi">
                   {[
                     ['again', 'Tekrar', '1 gün'],
                     ['hard', 'Zor', 'kısa'],
@@ -1208,6 +1217,7 @@ function ReviewScreen({ items, loading, onRemove, onReview, onPractice }: {
                   ].map(([value, label, hint]) => (
                     <button
                       key={value}
+                      aria-label={`${label}, ${hint}`}
                       disabled={Boolean(reviewing)}
                       onClick={() => review(item.questionId, value)}
                     >

@@ -7,10 +7,10 @@ işlenir.
 ## Şu anki durum
 
 - Son güncelleme: 2026-07-30
-- Aktif faz: Faz 3 — İlerleme ve tekrar
+- Aktif faz: Faz 4 — Yönetim ve içerik yaşam döngüsü
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-306 — Erişilebilirlik ve responsive kabul turu`
-- Son tamamlanan iş: `CF-305 — Kullanıcı dashboard'u`
+- Sıradaki iş: `CF-401 — Rol ve policy tabanlı yetkilendirme`
+- Son tamamlanan iş: `CF-306 — Erişilebilirlik ve responsive kabul turu`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -21,7 +21,7 @@ işlenir.
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
 | 2. Öğrenme ve içerik MVP'si | 8 | 8 | Tamamlandı |
-| 3. İlerleme ve tekrar | 5 | 6 | Devam ediyor |
+| 3. İlerleme ve tekrar | 6 | 6 | Tamamlandı |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
 | 6. Gelişmiş deneyim | 0 | 6 | Bekliyor |
@@ -73,13 +73,13 @@ işlenir.
 | CF-303 | Tamamlandı | Tekrar listesi | CF-302 | Soru ekleme, çıkarma ve filtreleme yapılır |
 | CF-304 | Tamamlandı | Spaced repetition planı | CF-303 | Sonraki tekrar tarihi hesaplanır |
 | CF-305 | Tamamlandı | Kullanıcı dashboard'u | CF-301–304 | Sıradaki çalışma, zayıf alan ve son sonuç görünür |
-| CF-306 | Sıradaki | Erişilebilirlik ve responsive kabul turu | CF-305 | Temel akışlarda klavye, mobil ve taşma sorunları giderilir |
+| CF-306 | Tamamlandı | Erişilebilirlik ve responsive kabul turu | CF-305 | Temel akışlarda klavye, mobil ve taşma sorunları giderilir |
 
 ### Faz 4 — Yönetim ve içerik yaşam döngüsü
 
 | ID | Durum | İş | Bağımlılık | Kabul özeti |
 | --- | --- | --- | --- | --- |
-| CF-401 | Bekliyor | Rol ve policy tabanlı yetkilendirme | CF-103 | Öğrenci ve yönetici yetkileri API seviyesinde ayrılır |
+| CF-401 | Sıradaki | Rol ve policy tabanlı yetkilendirme | CF-103 | Öğrenci ve yönetici yetkileri API seviyesinde ayrılır |
 | CF-402 | Bekliyor | İçerik yönetimi API'si | CF-401, CF-202 | İçerik CRUD ve doğrulama akışları hazırdır |
 | CF-403 | Bekliyor | Admin içerik arayüzü | CF-402 | Ders, soru, rubric ve pattern yönetilir |
 | CF-404 | Bekliyor | Taslak–inceleme–yayın akışı | CF-403 | Yayın durumu ve yetki kontrolleri vardır |
@@ -549,6 +549,25 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
   uyarısını üretmektedir.
 - Docker Desktop çalışmadığı için container/PostgreSQL smoke testi bu adımda
   yürütülemedi; yerel API integration testleri SQLite üzerinde tam geçti.
+
+### 2026-07-30 — CF-306 başlatıldı
+
+- Temel ekranlarda klavye odağı, semantik durum bildirimleri, mobil genişlik ve
+  yatay taşma davranışları için kabul turuna başlandı.
+
+### 2026-07-30 — CF-306 tamamlandı
+
+- Ana içeriğe geçiş bağlantısı, ekran değişiminde odak aktarımı, görünür klavye
+  odağı, sekme ve geçerli sayfa durumları erişilebilir semantiklerle tamamlandı.
+- İlerleme göstergeleri, seçim düğmeleri, hata mesajları ve tekrar puanlama
+  kontrolleri ekran okuyucu durumlarıyla zenginleştirildi.
+- Mobil üst menü ve içerik kolonlarının minimum genişlikleri düzenlenerek 375 px
+  mobil ve 1265 px masaüstü görünümünde yatay sayfa taşması giderildi.
+- Tarayıcı kabul turunda ilk açılış odağının gövdede kaldığı, atlama bağlantısının
+  doğru hedefe bağlandığı ve hesap sekmelerinin seçili durumları doğrulandı.
+- Frontend testleri 7/7, backend testleri 27/27 geçti; frontend build/lint ve
+  Release çözüm build'i uyarısız tamamlandı.
+- Faz 3 bütün işleriyle tamamlandı ve geliştirme sırası CF-401'e taşındı.
 
 ## Karar günlüğü
 
