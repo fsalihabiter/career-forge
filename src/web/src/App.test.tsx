@@ -36,6 +36,16 @@ function catalogResponse(url: string) {
   if (url.endsWith('/technologies')) return response(technologies)
   if (url.endsWith('/skills')) return response(skills)
   if (url.endsWith('/specializations')) return response(specializations)
+  if (url.endsWith('/me/dashboard')) {
+    return response({
+      nextWork: {
+        kind: 'diagnostic',
+        title: 'İlk tanılamanı tamamla',
+        description: 'Yetkinlik haritan için ilk kanıtları topla.',
+      },
+      dueReviewCount: 0,
+    })
+  }
   return null
 }
 
@@ -356,5 +366,52 @@ describe('App', () => {
         body: JSON.stringify({ rating: 'easy' }),
       }),
     )
+  })
+
+  it('shows next work, weakest skill and latest evidence on the dashboard', async () => {
+    localStorage.setItem('careerforge-token', 'existing-token')
+    const summary = {
+      nextWork: {
+        kind: 'review',
+        title: 'Idempotent API tasarımını yeniden kur',
+        description: 'API tasarımı alanında 2 soru bugün tekrar bekliyor.',
+        scheduledAt: '2026-07-30T08:00:00Z',
+      },
+      weakestSkill: {
+        userSkillId: 'user-skill-1',
+        skill: 'API tasarımı',
+        technology: 'ASP.NET Core',
+        measuredLevel: 'basic',
+        confidenceScore: 40,
+      },
+      lastResult: {
+        sessionId: 'session-1',
+        kind: 'diagnostic',
+        score: 68.5,
+        answeredQuestions: 8,
+        completedAt: '2026-07-29T18:00:00Z',
+      },
+      dueReviewCount: 2,
+    }
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = urlOf(input)
+      if (url.endsWith('/me/dashboard')) return response(summary)
+      const catalog = catalogResponse(url)
+      if (catalog) return catalog
+      if (url.endsWith('/me/skills')) return response([])
+      if (url.endsWith('/learning-paths/current')) return response({ items: [] })
+      return response({}, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+
+    expect(await screen.findByText(summary.nextWork.title)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tekrarları aç →' })).toBeInTheDocument()
+    expect(screen.getByText('API tasarımı')).toBeInTheDocument()
+    expect(screen.getByText('Temel · %40 güven')).toBeInTheDocument()
+    expect(screen.getByText('68.5 / 100')).toBeInTheDocument()
+    expect(screen.getByText('8 cevap · Tanılama')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
   })
 })

@@ -120,6 +120,32 @@ public sealed record ReviewItemResponse(
 
 public sealed record CompleteReviewRequest(string Rating);
 
+public sealed record DashboardNextWork(
+    string Kind,
+    string Title,
+    string Description,
+    DateTimeOffset? ScheduledAt);
+
+public sealed record DashboardWeakSkill(
+    Guid UserSkillId,
+    string Skill,
+    string? Technology,
+    string? MeasuredLevel,
+    decimal ConfidenceScore);
+
+public sealed record DashboardLastResult(
+    Guid SessionId,
+    string Kind,
+    double Score,
+    int AnsweredQuestions,
+    DateTimeOffset CompletedAt);
+
+public sealed record DashboardSummaryResponse(
+    DashboardNextWork NextWork,
+    DashboardWeakSkill? WeakestSkill,
+    DashboardLastResult? LastResult,
+    int DueReviewCount);
+
 public sealed record PatternSummary(
     string StableId,
     int Version,

@@ -107,6 +107,17 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue); backgroun
 .week-card small { font: 9px 'DM Mono'; color: var(--muted); letter-spacing: 1px; }
 .week-card b { font-size: 16px; }
 .week-card span { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.week-card .text-button { justify-self: start; margin-top: 5px; }
+.evidence-strip { display: grid; grid-template-columns: 150px 1fr 1fr; margin: -10px 0 24px; border: 1px solid var(--line); background: var(--line); gap: 1px; }
+.evidence-strip article { min-height: 104px; padding: 18px 20px; background: white; display: grid; align-content: center; gap: 6px; }
+.evidence-strip article:first-child { text-align: center; }
+.evidence-strip article.is-urgent { color: white; background: var(--blue); }
+.evidence-strip small { color: var(--blue); font: 9px 'DM Mono'; letter-spacing: 1px; }
+.evidence-strip .is-urgent small { color: var(--cyan); }
+.evidence-strip b { font-size: 20px; line-height: 1.15; }
+.evidence-strip article:first-child b { font: 36px 'DM Mono'; line-height: 1; }
+.evidence-strip span { color: var(--muted); font-size: 9px; }
+.evidence-strip .is-urgent span { color: #dce4ff; }
 .dash-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
 .main-column, .side-column { display: grid; gap: 20px; }
 .panel, .action-card { background: white; border: 1px solid var(--line); }
@@ -326,6 +337,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue); backgroun
 @media (max-width: 900px) {
   main { padding-top: 34px; }
   .auth-layout, .dash-grid, .session-layout, .selection-columns, .guide-layout, .reader-layout, .review-layout { grid-template-columns: 1fr; }
+  .evidence-strip { grid-template-columns: 130px 1fr 1fr; }
   .auth-layout { gap: 45px; }
   .auth-panel { max-width: 520px; }
   .dash-intro { grid-template-columns: 1fr; gap: 18px; }
@@ -366,6 +378,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue); backgroun
   .reader-number { order: 2; }
   .reader-progress { grid-template-columns: 1fr; gap: 10px; }
   .review-hero { grid-template-columns: 1fr; gap: 22px; }
+  .evidence-strip { grid-template-columns: 1fr; }
+  .evidence-strip article:first-child { text-align: left; }
   .review-row { grid-template-columns: 28px 1fr; }
   .review-date { grid-column: 2; min-height: auto; padding-left: 0; border-left: 0; border-top: 1px solid var(--line); padding-top: 12px; }
   .review-date.is-due { border-left: 0; border-top: 3px solid var(--cyan); }

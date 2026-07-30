@@ -436,6 +436,107 @@ public static class ProfileEndpoints
                 userSkill.Technology == null ? null : userSkill.Technology.Name,
                 history));
         });
+        me.MapGet("/dashboard", async (
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            TimeProvider timeProvider,
+            CancellationToken ct) =>
+        {
+            var userId = principal.UserId();
+            var now = timeProvider.GetUtcNow();
+            var reviews = await db.ReviewItems.AsNoTracking()
+                .Where(x => x.UserId == userId)
+                .Include(x => x.Question).ThenInclude(x => x.Skill)
+                .ToArrayAsync(ct);
+            var orderedReviews = reviews.OrderBy(x => x.NextReviewAt).ToArray();
+            var dueReviews = orderedReviews.Where(x => x.NextReviewAt <= now).ToArray();
+
+            var paths = await db.LearningPaths.AsNoTracking()
+                .Where(x => x.UserId == userId)
+                .Include(x => x.Items)
+                .ToArrayAsync(ct);
+            var path = paths.OrderByDescending(x => x.CreatedAt).FirstOrDefault();
+            var pathItem = path?.Items
+                .Where(x => !x.Completed)
+                .OrderBy(x => x.Order)
+                .FirstOrDefault();
+
+            var activeSkills = await db.UserSkills.AsNoTracking()
+                .Where(x => x.UserId == userId && x.IsActive)
+                .Include(x => x.Skill)
+                .Include(x => x.Technology)
+                .ToArrayAsync(ct);
+            var weakest = activeSkills
+                .OrderBy(x => x.MeasuredLevel.HasValue ? (int)x.MeasuredLevel.Value : -1)
+                .ThenBy(x => x.ConfidenceScore)
+                .FirstOrDefault();
+
+            var completedSessions = await db.InterviewSessions.AsNoTracking()
+                .Where(x => x.UserId == userId
+                    && x.Status == SessionStatus.Completed
+                    && x.CompletedAt.HasValue)
+                .Include(x => x.Questions)
+                .ToArrayAsync(ct);
+            var lastSession = completedSessions
+                .OrderByDescending(x => x.CompletedAt)
+                .FirstOrDefault();
+            DashboardLastResult? lastResult = null;
+            if (lastSession is not null)
+            {
+                var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+                var evaluations = lastSession.Questions
+                    .Where(x => x.EvaluationJson is not null)
+                    .Select(x => JsonSerializer.Deserialize<RubricEvaluation>(
+                        x.EvaluationJson!,
+                        jsonOptions)!)
+                    .ToArray();
+                lastResult = new DashboardLastResult(
+                    lastSession.Id,
+                    lastSession.Kind.ToString().ToLowerInvariant(),
+                    evaluations.Length == 0
+                        ? 0
+                        : Math.Round(evaluations.Average(x => x.OverallScore), 1),
+                    lastSession.Questions.Count(x => x.AnswerText is not null),
+                    lastSession.CompletedAt!.Value);
+            }
+
+            DashboardNextWork nextWork;
+            if (dueReviews.FirstOrDefault() is { } due)
+                nextWork = new DashboardNextWork(
+                    "review",
+                    due.Question.Prompt,
+                    $"{due.Question.Skill.Name} alanında {dueReviews.Length} soru bugün tekrar bekliyor.",
+                    due.NextReviewAt);
+            else if (pathItem is not null)
+                nextWork = new DashboardNextWork(
+                    "path",
+                    pathItem.Title,
+                    pathItem.Reason,
+                    null);
+            else if (orderedReviews.FirstOrDefault() is { } scheduled)
+                nextWork = new DashboardNextWork(
+                    "review",
+                    scheduled.Question.Prompt,
+                    $"{scheduled.Question.Skill.Name} için planlanan sonraki tekrar.",
+                    scheduled.NextReviewAt);
+            else
+                nextWork = new DashboardNextWork(
+                    "diagnostic",
+                    "İlk tanılamanı tamamla",
+                    "Yetkinlik haritan için farklı soru türlerinden ilk kanıtları topla.",
+                    null);
+
+            return Results.Ok(new DashboardSummaryResponse(
+                nextWork,
+                weakest is null ? null : new DashboardWeakSkill(
+                    weakest.Id,
+                    weakest.Skill.Name,
+                    weakest.Technology?.Name,
+                    weakest.MeasuredLevel?.ToString().ToLowerInvariant(),
+                    weakest.ConfidenceScore),
+                lastResult,
+                dueReviews.Length));
+        });
         api.MapPost("/learning-paths/generate", async (ClaimsPrincipal principal, PlanningService planner, CancellationToken ct) =>
             Results.Ok(await planner.GenerateAsync(principal.UserId(), ct))).RequireAuthorization();
         api.MapGet("/learning-paths/current", async (ClaimsPrincipal principal, AppDbContext db, CancellationToken ct) =>

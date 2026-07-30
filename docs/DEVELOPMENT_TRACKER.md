@@ -6,11 +6,11 @@ işlenir.
 
 ## Şu anki durum
 
-- Son güncelleme: 2026-07-27
+- Son güncelleme: 2026-07-30
 - Aktif faz: Faz 3 — İlerleme ve tekrar
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-305 — Kullanıcı dashboard'u`
-- Son tamamlanan iş: `CF-304 — Spaced repetition planı`
+- Sıradaki iş: `CF-306 — Erişilebilirlik ve responsive kabul turu`
+- Son tamamlanan iş: `CF-305 — Kullanıcı dashboard'u`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -21,7 +21,7 @@ işlenir.
 | 0. Temel iskelet | 6 | 6 | Tamamlandı |
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
 | 2. Öğrenme ve içerik MVP'si | 8 | 8 | Tamamlandı |
-| 3. İlerleme ve tekrar | 4 | 6 | Devam ediyor |
+| 3. İlerleme ve tekrar | 5 | 6 | Devam ediyor |
 | 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
 | 6. Gelişmiş deneyim | 0 | 6 | Bekliyor |
@@ -72,8 +72,8 @@ işlenir.
 | CF-302 | Tamamlandı | Beceri bazlı gelişim hesabı | CF-207 | Ölçülen seviye ve güven skoru geçmişi korunur |
 | CF-303 | Tamamlandı | Tekrar listesi | CF-302 | Soru ekleme, çıkarma ve filtreleme yapılır |
 | CF-304 | Tamamlandı | Spaced repetition planı | CF-303 | Sonraki tekrar tarihi hesaplanır |
-| CF-305 | Sıradaki | Kullanıcı dashboard'u | CF-301–304 | Sıradaki çalışma, zayıf alan ve son sonuç görünür |
-| CF-306 | Bekliyor | Erişilebilirlik ve responsive kabul turu | CF-305 | Temel akışlarda klavye, mobil ve taşma sorunları giderilir |
+| CF-305 | Tamamlandı | Kullanıcı dashboard'u | CF-301–304 | Sıradaki çalışma, zayıf alan ve son sonuç görünür |
+| CF-306 | Sıradaki | Erişilebilirlik ve responsive kabul turu | CF-305 | Temel akışlarda klavye, mobil ve taşma sorunları giderilir |
 
 ### Faz 4 — Yönetim ve içerik yaşam döngüsü
 
@@ -523,6 +523,32 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
 - Gerçek PostgreSQL smoke testinde ilk kayıt 0 günle başladı, iyi sonucu 1 güne,
   ardından kolay sonucu 7 güne ve iki tekrara taşıdı; sonraki tarih son çalışmadan
   tam 7 gün sonrası oldu ve web 200 döndü.
+
+### 2026-07-30 — CF-305 başlatıldı
+
+- Sıradaki çalışma, zayıf beceri alanı ve son oturum sonucunu tek kullanıcı
+  dashboard'unda birleştirme çalışmasına başlandı.
+
+### 2026-07-30 — CF-305 tamamlandı
+
+- Kullanıcıya özel dashboard API'si vadesi gelen tekrarları, ilk tamamlanmamış rota
+  adımını, en zayıf aktif beceriyi ve son tamamlanan oturum sonucunu birleştiriyor.
+- Sıradaki çalışma; vadesi gelmiş tekrar, öğrenme yolu, planlanmış tekrar ve ilk
+  tanılama önceliğiyle deterministik olarak seçiliyor.
+- Son sonuç puanı rubric değerlendirme snapshot'larından hesaplanıyor; JSON
+  adlandırma uyumsuzluğunun puanı sıfırlaması daha sıkı integration testiyle
+  yakalanıp giderildi.
+- Endpoint yalnızca oturum sahibinin tekrar, beceri, rota ve sonuç verisini
+  topluyor; boş hesap için güvenli başlangıç özeti döndürüyor.
+- Dashboard, sıradaki işe doğrudan götüren odak alanı ile bugün bekleyen tekrar,
+  zayıf alan ve son kanıtı bağlayan responsive bir kanıt şeridi kazandı.
+- Yetkilendirme, hesap izolasyonu ve birleşik özet integration testiyle; özetin
+  tüm alanları ve doğru eylemi göstermesi component testiyle doğrulandı.
+- Backend testleri 27/27, frontend testleri 6/6, çözüm ve production web build
+  başarılıdır; lint yalnızca önceden bilinen engelleyici olmayan `useEffect`
+  uyarısını üretmektedir.
+- Docker Desktop çalışmadığı için container/PostgreSQL smoke testi bu adımda
+  yürütülemedi; yerel API integration testleri SQLite üzerinde tam geçti.
 
 ## Karar günlüğü
 

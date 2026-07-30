@@ -103,6 +103,24 @@ type ReviewItem = {
   intervalDays: number
   repetitionCount: number
 }
+type DashboardSummary = {
+  nextWork: { kind: 'review' | 'path' | 'diagnostic'; title: string; description: string; scheduledAt?: string }
+  weakestSkill?: {
+    userSkillId: string
+    skill: string
+    technology?: string
+    measuredLevel?: string
+    confidenceScore: number
+  }
+  lastResult?: {
+    sessionId: string
+    kind: string
+    score: number
+    answeredQuestions: number
+    completedAt: string
+  }
+  dueReviewCount: number
+}
 
 const levelLabels: Record<string, string> = {
   beginner: 'Başlangıç',
@@ -153,6 +171,7 @@ function App() {
   const [lessonProgress, setLessonProgress] = useState<LessonProgress | null>(null)
   const [patterns, setPatterns] = useState<PatternSummary[]>([])
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([])
+  const [dashboard, setDashboard] = useState<DashboardSummary | null>(null)
   const [guideMode, setGuideMode] = useState<'lessons' | 'patterns'>('lessons')
   const [learningTechnology, setLearningTechnology] = useState('')
   const [message, setMessage] = useState('')
@@ -169,12 +188,14 @@ function App() {
 
   const loadDashboard = async () => {
     try {
-      const [skills, learningPath] = await Promise.all([
+      const [skills, learningPath, summary] = await Promise.all([
         api<UserSkill[]>('/me/skills'),
         api<{ items: PathItem[] }>('/learning-paths/current').catch(() => ({ items: [] })),
+        api<DashboardSummary>('/me/dashboard'),
       ])
       setUserSkills(skills)
       setPath(learningPath.items)
+      setDashboard(summary)
     } catch {
       localStorage.removeItem('careerforge-token')
       setScreen('auth')
@@ -343,9 +364,12 @@ function App() {
           <Dashboard
             skills={userSkills}
             path={path}
+            summary={dashboard}
             technologies={catalog.technologies}
             onDiagnostic={() => startSession('diagnostic')}
             onInterview={() => startSession('interview')}
+            onReview={openReview}
+            onLearning={() => openLearning()}
             onEdit={() => setScreen('onboarding')}
             loading={loading}
           />
@@ -835,22 +859,65 @@ function Onboarding({ catalog, onDone, onError }: {
   )
 }
 
-function Dashboard({ skills, path, technologies, onDiagnostic, onInterview, onEdit, loading }: {
+function Dashboard({ skills, path, summary, technologies, onDiagnostic, onInterview, onReview, onLearning, onEdit, loading }: {
   skills: UserSkill[]
   path: PathItem[]
+  summary: DashboardSummary | null
   technologies: Technology[]
   onDiagnostic: () => void
   onInterview: () => void
+  onReview: () => void
+  onLearning: () => void
   onEdit: () => void
   loading: boolean
 }) {
   const measured = skills.filter(x => x.measuredLevel)
   const averageConfidence = measured.length ? Math.round(measured.reduce((sum, x) => sum + Number(x.confidenceScore ?? 0), 0) / measured.length) : 0
+  const nextAction = summary?.nextWork.kind === 'review'
+    ? onReview
+    : summary?.nextWork.kind === 'path'
+      ? onLearning
+      : onDiagnostic
+  const nextActionLabel = summary?.nextWork.kind === 'review'
+    ? 'Tekrarları aç'
+    : summary?.nextWork.kind === 'path'
+      ? 'Rehberi aç'
+      : 'Tanılamayı başlat'
   return (
     <section className="dashboard">
       <div className="dash-intro">
         <div><span className="eyebrow">KİŞİSEL ÇALIŞMA ROTASI</span><h1>Bugün ezber değil, <em>bir karar</em> çalış.</h1><p>Rotan öz beyanından başlar; cevap verdikçe ölçülen seviyenle yeniden şekillenir.</p></div>
-        <div className="week-card"><small>BU HAFTAKİ ODAK</small><b>{path[0]?.title ?? 'İlk tanılamanı tamamla'}</b><span>{path[0]?.reason ?? 'Yetkinlik haritan için ilk kanıtları topla.'}</span></div>
+        <div className="week-card">
+          <small>SIRADAKİ ÇALIŞMA</small>
+          <b>{summary?.nextWork.title ?? path[0]?.title ?? 'İlk tanılamanı tamamla'}</b>
+          <span>{summary?.nextWork.description ?? path[0]?.reason ?? 'Yetkinlik haritan için ilk kanıtları topla.'}</span>
+          <button className="text-button" onClick={nextAction}>{nextActionLabel} →</button>
+        </div>
+      </div>
+      <div className="evidence-strip" aria-label="Çalışma özeti">
+        <article className={summary?.dueReviewCount ? 'is-urgent' : ''}>
+          <small>BUGÜN</small>
+          <b>{summary?.dueReviewCount ?? 0}</b>
+          <span>{summary?.dueReviewCount === 1 ? 'soru tekrar bekliyor' : 'soru tekrar bekliyor'}</span>
+        </article>
+        <article>
+          <small>ZAYIF ALAN</small>
+          <b>{summary?.weakestSkill?.skill ?? 'Henüz ölçülmedi'}</b>
+          <span>
+            {summary?.weakestSkill
+              ? `${summary.weakestSkill.measuredLevel ? levelLabels[summary.weakestSkill.measuredLevel] : 'İlk kanıt bekleniyor'} · %${Math.round(summary.weakestSkill.confidenceScore)} güven`
+              : 'Tanılama sonrası burada görünür'}
+          </span>
+        </article>
+        <article>
+          <small>SON KANIT</small>
+          <b>{summary?.lastResult ? `${summary.lastResult.score} / 100` : 'Oturum yok'}</b>
+          <span>
+            {summary?.lastResult
+              ? `${summary.lastResult.answeredQuestions} cevap · ${summary.lastResult.kind === 'diagnostic' ? 'Tanılama' : 'Mülakat'}`
+              : 'İlk oturumunu tamamla'}
+          </span>
+        </article>
       </div>
       <div className="dash-grid">
         <div className="main-column">
@@ -897,7 +964,7 @@ function Dashboard({ skills, path, technologies, onDiagnostic, onInterview, onEd
         <aside className="side-column">
           <article className="action-card diagnostic-card">
             <small>8 SORU · 15 DAKİKA</small><h2>Başlangıç tanılaması</h2><p>Farklı soru türlerinden ilk kanıtlarını topla. Öz beyanın sonuçtan ayrı kalır.</p>
-            <button className="primary wide" onClick={onDiagnostic} disabled={loading}>Tanılamayı başlat →</button>
+            <button className="primary wide" onClick={onDiagnostic} disabled={loading}>Yeni tanılama başlat →</button>
           </article>
           <article className="action-card interview-card">
             <small>10 SORU · SERBEST MOD</small><h2>Mülakat provası</h2><p>Seçtiğin teknoloji ve yetkinliklerle dengeli bir oturum oluştur.</p>
