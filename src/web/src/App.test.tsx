@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -30,6 +30,10 @@ function urlOf(input: RequestInfo | URL) {
   if (typeof input === 'string') return input
   if (input instanceof URL) return input.toString()
   return input.url
+}
+
+function adminToken() {
+  return `header.${btoa(JSON.stringify({ role: 'Administrator' }))}.signature`
 }
 
 function catalogResponse(url: string) {
@@ -444,5 +448,47 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: 'Ders kataloğu' })).toBeInTheDocument()
     expect(screen.getByRole('main')).toHaveFocus()
     expect(screen.getByRole('button', { name: 'Rehber' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('lets an administrator manage every content type and create a lesson', async () => {
+    localStorage.setItem('careerforge-token', adminToken())
+    const lesson = {
+      stableId: 'lesson-one', version: 1, slug: 'lesson-one', title: 'İlk ders',
+      summary: '', technologySlug: null, level: 'intermediate', estimatedMinutes: 20,
+      status: 'draft', objectives: [], prerequisites: [], category: null,
+      sections: [{ key: 'intro', title: 'Giriş', order: 1, bodyMarkdown: 'İçerik', codeLanguage: null, codeSample: null }],
+    }
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = urlOf(input)
+      const catalog = catalogResponse(url)
+      if (catalog) return catalog
+      if (url.endsWith('/me/skills')) return response([])
+      if (url.endsWith('/learning-paths/current')) return response({ items: [] })
+      if (url.endsWith('/admin/content/lessons/') && init?.method === 'POST') {
+        return response(JSON.parse(String(init.body)), 201)
+      }
+      if (url.endsWith('/admin/content/lessons/lesson-one/1')) return response(lesson)
+      if (url.includes('/admin/content/')) return response(url.endsWith('/lessons/') ? [lesson] : [])
+      return response({}, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'İçerik' }))
+
+    expect(await screen.findByRole('heading', { name: /Bilgiyi yayına hazırla/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('tab')).toHaveLength(4)
+    expect(await screen.findByText('İlk ders')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Yeni ders' }))
+    const editor = screen.getByRole('textbox', { name: 'İçerik sözleşmesi' })
+    fireEvent.change(editor, { target: { value: JSON.stringify({ ...lesson, stableId: 'lesson-two', slug: 'lesson-two', title: 'İkinci ders' }) } })
+    await user.click(screen.getByRole('button', { name: 'Değişiklikleri kaydet' }))
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/admin/content/lessons/'),
+      expect.objectContaining({ method: 'POST' }),
+    ))
   })
 })

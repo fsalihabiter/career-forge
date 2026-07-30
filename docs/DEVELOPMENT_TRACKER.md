@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-31
 - Aktif faz: Faz 4 — Yönetim ve içerik yaşam döngüsü
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-403 — Admin içerik arayüzü`
-- Son tamamlanan iş: `CF-402 — İçerik yönetimi API'si`
+- Sıradaki iş: `CF-404 — Taslak–inceleme–yayın akışı`
+- Son tamamlanan iş: `CF-403 — Admin içerik arayüzü`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -22,7 +22,7 @@ işlenir.
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
 | 2. Öğrenme ve içerik MVP'si | 8 | 8 | Tamamlandı |
 | 3. İlerleme ve tekrar | 6 | 6 | Tamamlandı |
-| 4. Yönetim ve içerik yaşam döngüsü | 2 | 6 | Devam ediyor |
+| 4. Yönetim ve içerik yaşam döngüsü | 3 | 6 | Devam ediyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
 | 6. Gelişmiş deneyim | 0 | 6 | Bekliyor |
 
@@ -81,8 +81,8 @@ işlenir.
 | --- | --- | --- | --- | --- |
 | CF-401 | Tamamlandı | Rol ve policy tabanlı yetkilendirme | CF-103 | Öğrenci ve yönetici yetkileri API seviyesinde ayrılır |
 | CF-402 | Tamamlandı | İçerik yönetimi API'si | CF-401, CF-202 | İçerik CRUD ve doğrulama akışları hazırdır |
-| CF-403 | Sıradaki | Admin içerik arayüzü | CF-402 | Ders, soru, rubric ve pattern yönetilir |
-| CF-404 | Bekliyor | Taslak–inceleme–yayın akışı | CF-403 | Yayın durumu ve yetki kontrolleri vardır |
+| CF-403 | Tamamlandı | Admin içerik arayüzü | CF-402 | Ders, soru, rubric ve pattern yönetilir |
+| CF-404 | Sıradaki | Taslak–inceleme–yayın akışı | CF-403 | Yayın durumu ve yetki kontrolleri vardır |
 | CF-405 | Bekliyor | İçerik versiyonlama | CF-404 | Eski cevap doğru içerik/rubric sürümüyle eşleşir |
 | CF-406 | Bekliyor | İçerik kalite kontrolleri | CF-405 | Şema, bağlantı ve zorunlu alan kontrolleri CI'da çalışır |
 
@@ -122,6 +122,28 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
 5. Bu dosyada durum, tarih ve çalışma günlüğü güncellendi.
 
 ## Çalışma günlüğü
+
+### 2026-07-31 — CF-403 başlatıldı
+
+- Ders, pattern, rubric ve soruları tek yönetici çalışma alanında yöneten
+  responsive ve erişilebilir içerik arayüzünün geliştirilmesine başlandı.
+
+### 2026-07-31 — CF-403 tamamlandı
+
+- JWT rol claim'i güvenli biçimde okunarak içerik yönetimi navigasyonu yalnızca
+  yönetici rolündeki kullanıcılara gösterildi.
+- Ders, pattern, rubric ve sorular kodlu editoryal sekmeler, aranabilir sürüm
+  dizini ve ortak içerik sözleşmesi editörüyle tek çalışma alanında birleştirildi.
+- Yeni kayıt, detay yükleme, güncelleme ve onaylı silme işlemleri CF-402 API'sine
+  bağlandı; API doğrulama mesajları arayüzde doğrudan gösteriliyor.
+- Masaüstünde çift kolonlu, tablette tek kolonlu ve mobilde yatay tür raylı
+  responsive düzen; görünür odaklar ve semantik tab yapısı tamamlandı.
+- Yönetici görünürlüğü, dört içerik türü, ders oluşturma ve API çağrısı component
+  testiyle doğrulandı; frontend testleri 8/8 ve backend testleri 32/32 geçti.
+- Release çözüm build'i, frontend production build'i ve lint uyarısız tamamlandı;
+  375 px tarayıcı kabul kontrolünde yatay sayfa taşması görülmedi.
+- Şema veya API değişikliği gerekmedi ve geliştirme sırası CF-404
+  taslak–inceleme–yayın akışına taşındı.
 
 ### 2026-07-31 — CF-402 başlatıldı
 
