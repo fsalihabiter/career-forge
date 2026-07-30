@@ -1,10 +1,12 @@
 using CareerForge.Api.Data;
 using CareerForge.Api.Content;
+using CareerForge.Api.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -31,6 +33,11 @@ public sealed class CareerForgeApiFactory : WebApplicationFactory<Program>
             using var scope = provider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Database.EnsureCreated();
+            RoleSeed.ApplyAsync(
+                    scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>(),
+                    scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>())
+                .GetAwaiter()
+                .GetResult();
             SeedData.ApplyAsync(db).GetAwaiter().GetResult();
             var environment = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
             var importer = scope.ServiceProvider.GetRequiredService<ContentImportService>();

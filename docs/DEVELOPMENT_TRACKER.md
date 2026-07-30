@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-30
 - Aktif faz: Faz 4 — Yönetim ve içerik yaşam döngüsü
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-401 — Rol ve policy tabanlı yetkilendirme`
-- Son tamamlanan iş: `CF-306 — Erişilebilirlik ve responsive kabul turu`
+- Sıradaki iş: `CF-402 — İçerik yönetimi API'si`
+- Son tamamlanan iş: `CF-401 — Rol ve policy tabanlı yetkilendirme`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -22,7 +22,7 @@ işlenir.
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
 | 2. Öğrenme ve içerik MVP'si | 8 | 8 | Tamamlandı |
 | 3. İlerleme ve tekrar | 6 | 6 | Tamamlandı |
-| 4. Yönetim ve içerik yaşam döngüsü | 0 | 6 | Bekliyor |
+| 4. Yönetim ve içerik yaşam döngüsü | 1 | 6 | Devam ediyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
 | 6. Gelişmiş deneyim | 0 | 6 | Bekliyor |
 
@@ -79,8 +79,8 @@ işlenir.
 
 | ID | Durum | İş | Bağımlılık | Kabul özeti |
 | --- | --- | --- | --- | --- |
-| CF-401 | Sıradaki | Rol ve policy tabanlı yetkilendirme | CF-103 | Öğrenci ve yönetici yetkileri API seviyesinde ayrılır |
-| CF-402 | Bekliyor | İçerik yönetimi API'si | CF-401, CF-202 | İçerik CRUD ve doğrulama akışları hazırdır |
+| CF-401 | Tamamlandı | Rol ve policy tabanlı yetkilendirme | CF-103 | Öğrenci ve yönetici yetkileri API seviyesinde ayrılır |
+| CF-402 | Sıradaki | İçerik yönetimi API'si | CF-401, CF-202 | İçerik CRUD ve doğrulama akışları hazırdır |
 | CF-403 | Bekliyor | Admin içerik arayüzü | CF-402 | Ders, soru, rubric ve pattern yönetilir |
 | CF-404 | Bekliyor | Taslak–inceleme–yayın akışı | CF-403 | Yayın durumu ve yetki kontrolleri vardır |
 | CF-405 | Bekliyor | İçerik versiyonlama | CF-404 | Eski cevap doğru içerik/rubric sürümüyle eşleşir |
@@ -568,6 +568,28 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
 - Frontend testleri 7/7, backend testleri 27/27 geçti; frontend build/lint ve
   Release çözüm build'i uyarısız tamamlandı.
 - Faz 3 bütün işleriyle tamamlandı ve geliştirme sırası CF-401'e taşındı.
+
+### 2026-07-30 — CF-401 başlatıldı
+
+- Öğrenci ve yönetici rollerinin JWT claim'leri ile API policy'lerinde ayrılması
+  ve mevcut hesapların geriye uyumlu rol geçişi çalışmasına başlandı.
+
+### 2026-07-30 — CF-401 tamamlandı
+
+- Identity altyapısına öğrenci ve yönetici rolleri ile bunlara bağlı ayrı erişim
+  policy'leri eklendi.
+- Yeni kayıtlar varsayılan öğrenci rolü alıyor, rolsüz mevcut hesaplar başlangıçta
+  idempotent biçimde öğrenci rolüne taşınıyor ve roller JWT'ye standart claim
+  olarak yazılıyor.
+- Kullanıcıya özel API grupları öğrenci policy'sine, yönetim erişim sınırı ise
+  yönetici policy'sine bağlanarak iki yetki alanı API seviyesinde ayrıldı.
+- Anonim isteğin `401`, öğrencinin yönetim alanında `403`, yöneticinin yönetim
+  alanında `200` ve öğrenci alanında `403` aldığı integration testleriyle
+  doğrulandı; rol seed işleminin tekrar çalıştırılabilirliği de kapsandı.
+- Backend testleri 30/30 ve frontend testleri 7/7 geçti; çözüm build'i, frontend
+  build'i ve lint uyarısız tamamlandı.
+- Şema değişikliği gerekmedi; mevcut Identity rol tabloları kullanıldı ve
+  geliştirme sırası CF-402 içerik yönetimi API'sine taşındı.
 
 ## Karar günlüğü
 

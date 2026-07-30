@@ -40,6 +40,7 @@ builder.Services
         options.Password.RequireNonAlphanumeric = false;
         options.User.RequireUniqueEmail = true;
     })
+    .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<AppDbContext>();
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -54,10 +55,17 @@ builder.Services
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ClockSkew = TimeSpan.FromSeconds(30)
+            ClockSkew = TimeSpan.FromSeconds(30),
+            RoleClaimType = ClaimTypes.Role
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AppPolicies.StudentAccess,
+        policy => policy.RequireRole(AppRoles.Student));
+    options.AddPolicy(AppPolicies.AdministratorAccess,
+        policy => policy.RequireRole(AppRoles.Administrator));
+});
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     policy.WithOrigins(builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? ["http://localhost:5173"])
         .AllowAnyHeader()
@@ -119,12 +127,16 @@ AuthEndpoints.Map(api, builder.Configuration);
 ProfileEndpoints.Map(api);
 ReviewEndpoints.Map(api);
 SessionEndpoints.Map(api);
+AdministrationEndpoints.Map(api);
 
 if (!app.Environment.IsEnvironment("Testing"))
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
+    await RoleSeed.ApplyAsync(
+        scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>(),
+        scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>());
     await SeedData.ApplyAsync(db);
     var importer = scope.ServiceProvider.GetRequiredService<ContentImportService>();
     await importer.ImportAsync(Path.Combine(app.Environment.ContentRootPath, "Content"));

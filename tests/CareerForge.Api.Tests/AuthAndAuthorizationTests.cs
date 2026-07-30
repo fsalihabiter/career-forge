@@ -1,8 +1,13 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using CareerForge.Api.Contracts;
+using CareerForge.Api.Models;
 using CareerForge.Api.Tests.Infrastructure;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CareerForge.Api.Tests;
 
@@ -24,6 +29,9 @@ public sealed class AuthAndAuthorizationTests(CareerForgeApiFactory factory)
         Assert.Equal(HttpStatusCode.OK, registerResponse.StatusCode);
         Assert.NotNull(registration);
         Assert.False(string.IsNullOrWhiteSpace(registration.AccessToken));
+        var registrationToken = new JwtSecurityTokenHandler().ReadJwtToken(registration.AccessToken);
+        Assert.Contains(registrationToken.Claims,
+            claim => claim.Type == ClaimTypes.Role && claim.Value == AppRoles.Student);
 
         var loginResponse = await client.PostAsJsonAsync(
             "/api/auth/login",
@@ -34,6 +42,77 @@ public sealed class AuthAndAuthorizationTests(CareerForgeApiFactory factory)
         Assert.NotNull(login);
         Assert.False(string.IsNullOrWhiteSpace(login.AccessToken));
         Assert.Equal("Integration User", login.DisplayName);
+    }
+
+    [Fact]
+    public async Task Student_is_forbidden_from_administrator_policy()
+    {
+        using var client = factory.CreateClient();
+        await AuthenticateAsync(client, "Student User");
+
+        var response = await client.GetAsync("/api/admin/access");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Administrator_role_is_issued_in_token_and_grants_administrator_policy()
+    {
+        var email = UniqueEmail();
+        const string password = "IntegrationPass123";
+        using (var scope = factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            var administrator = new AppUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = email,
+                Email = email
+            };
+            Assert.True((await users.CreateAsync(administrator, password)).Succeeded);
+            Assert.True((await users.AddToRoleAsync(administrator, AppRoles.Administrator)).Succeeded);
+        }
+
+        using var client = factory.CreateClient();
+        var loginResponse = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest(email, password));
+        var login = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+        Assert.NotNull(login);
+        var token = new JwtSecurityTokenHandler().ReadJwtToken(login.AccessToken);
+        Assert.Contains(token.Claims,
+            claim => claim.Type == ClaimTypes.Role && claim.Value == AppRoles.Administrator);
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", login.AccessToken);
+
+        var response = await client.GetAsync("/api/admin/access");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var studentEndpoint = await client.GetAsync("/api/me/preparation-profile");
+        Assert.Equal(HttpStatusCode.Forbidden, studentEndpoint.StatusCode);
+    }
+
+    [Fact]
+    public async Task Role_seed_backfills_existing_users_without_overwriting_assigned_roles()
+    {
+        using var scope = factory.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+        var email = UniqueEmail();
+        var existingUser = new AppUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = email,
+            Email = email
+        };
+        Assert.True((await users.CreateAsync(existingUser, "IntegrationPass123")).Succeeded);
+
+        await RoleSeed.ApplyAsync(roles, users);
+        await RoleSeed.ApplyAsync(roles, users);
+
+        Assert.Equal([AppRoles.Student], await users.GetRolesAsync(existingUser));
     }
 
     [Fact]

@@ -61,10 +61,16 @@ public static class AuthEndpoints
             if (!result.Succeeded)
                 return Results.ValidationProblem(result.Errors.GroupBy(x => x.Code)
                     .ToDictionary(x => x.Key, x => x.Select(e => e.Description).ToArray()));
+            var roleResult = await users.AddToRoleAsync(user, AppRoles.Student);
+            if (!roleResult.Succeeded)
+            {
+                await users.DeleteAsync(user);
+                return Results.Problem("Kullanıcı rolü atanamadı.", statusCode: 500);
+            }
             var profile = new UserProfile { UserId = user.Id, TargetRole = request.DisplayName.Trim() };
             db.Add(profile);
             await db.SaveChangesAsync();
-            var token = tokens.Create(user, request.DisplayName.Trim());
+            var token = await tokens.CreateAsync(user, request.DisplayName.Trim());
             return Results.Ok(new AuthResponse(token.Token, token.ExpiresAt, request.DisplayName.Trim(), false));
         });
         auth.MapPost("/login", async (LoginRequest request, UserManager<AppUser> users, AppDbContext db, TokenService tokens) =>
@@ -74,9 +80,18 @@ public static class AuthEndpoints
                 return Results.Problem("E-posta veya parola geçersiz.", statusCode: 401);
             var profile = await db.UserProfiles.FindAsync(user.Id);
             var displayName = profile?.TargetRole ?? user.Email ?? "Kullanıcı";
-            var token = tokens.Create(user, displayName);
+            var token = await tokens.CreateAsync(user, displayName);
             return Results.Ok(new AuthResponse(token.Token, token.ExpiresAt, displayName, profile?.OnboardingCompleted ?? false));
         });
+    }
+}
+
+public static class AdministrationEndpoints
+{
+    public static void Map(RouteGroupBuilder api)
+    {
+        api.MapGet("/admin/access", () => Results.Ok(new { role = AppRoles.Administrator }))
+            .RequireAuthorization(AppPolicies.AdministratorAccess);
     }
 }
 
@@ -175,7 +190,7 @@ public static class LearningGuideEndpoints
                     && x.LessonVersion == lesson.Version,
                 ct);
             return Results.Ok(ToProgress(lesson, progress));
-        }).RequireAuthorization();
+        }).RequireAuthorization(AppPolicies.StudentAccess);
 
         learning.MapPut("/lessons/{slug}/progress", async (
             string slug,
@@ -225,7 +240,7 @@ public static class LearningGuideEndpoints
                 : null;
             await db.SaveChangesAsync(ct);
             return Results.Ok(ToProgress(lesson, progress));
-        }).RequireAuthorization();
+        }).RequireAuthorization(AppPolicies.StudentAccess);
 
         learning.MapGet("/patterns", async (AppDbContext db, CancellationToken ct) =>
         {
@@ -336,7 +351,7 @@ public static class ProfileEndpoints
 {
     public static void Map(RouteGroupBuilder api)
     {
-        var me = api.MapGroup("/me").RequireAuthorization();
+        var me = api.MapGroup("/me").RequireAuthorization(AppPolicies.StudentAccess);
         me.MapGet("/preparation-profile", async (ClaimsPrincipal principal, AppDbContext db, CancellationToken ct) =>
         {
             var id = principal.UserId();
@@ -538,7 +553,8 @@ public static class ProfileEndpoints
                 dueReviews.Length));
         });
         api.MapPost("/learning-paths/generate", async (ClaimsPrincipal principal, PlanningService planner, CancellationToken ct) =>
-            Results.Ok(await planner.GenerateAsync(principal.UserId(), ct))).RequireAuthorization();
+            Results.Ok(await planner.GenerateAsync(principal.UserId(), ct)))
+            .RequireAuthorization(AppPolicies.StudentAccess);
         api.MapGet("/learning-paths/current", async (ClaimsPrincipal principal, AppDbContext db, CancellationToken ct) =>
         {
             var id = principal.UserId();
@@ -549,7 +565,7 @@ public static class ProfileEndpoints
                 path.Id, path.CreatedAt,
                 items = path.Items.OrderBy(x => x.Order).Select(x => new { x.Id, x.Title, x.Reason, x.Order, x.Completed })
             });
-        }).RequireAuthorization();
+        }).RequireAuthorization(AppPolicies.StudentAccess);
     }
 }
 
@@ -563,7 +579,7 @@ public static class SessionEndpoints
 
     private static void MapKind(RouteGroupBuilder api, string route, SessionKind kind)
     {
-        var group = api.MapGroup($"/{route}").RequireAuthorization();
+        var group = api.MapGroup($"/{route}").RequireAuthorization(AppPolicies.StudentAccess);
         group.MapPost("/", async (StartSessionRequest request, ClaimsPrincipal principal, SessionService sessions, CancellationToken ct) =>
         {
             var session = await sessions.StartAsync(principal.UserId(), kind, request.QuestionCount, ct);
@@ -611,7 +627,7 @@ public static class ReviewEndpoints
 {
     public static void Map(RouteGroupBuilder api)
     {
-        var group = api.MapGroup("/review-items").RequireAuthorization();
+        var group = api.MapGroup("/review-items").RequireAuthorization(AppPolicies.StudentAccess);
 
         group.MapGet("/", async (
             string? skill,
