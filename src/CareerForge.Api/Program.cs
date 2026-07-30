@@ -63,6 +63,8 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(AppPolicies.StudentAccess,
         policy => policy.RequireRole(AppRoles.Student));
+    options.AddPolicy(AppPolicies.ContentManagement,
+        policy => policy.RequireRole(AppRoles.ContentEditor, AppRoles.Administrator));
     options.AddPolicy(AppPolicies.AdministratorAccess,
         policy => policy.RequireRole(AppRoles.Administrator));
 });

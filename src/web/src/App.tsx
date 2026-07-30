@@ -159,22 +159,24 @@ async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   return response.json()
 }
 
-function hasAdministratorRole() {
+function tokenRoles() {
   const token = localStorage.getItem('careerforge-token')
-  if (!token) return false
+  if (!token) return [] as string[]
   try {
     const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
     const role = payload.role ?? payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']
-    return role === 'Administrator' || (Array.isArray(role) && role.includes('Administrator'))
+    return Array.isArray(role) ? role : [role].filter(Boolean)
   } catch {
-    return false
+    return []
   }
 }
 
 function App() {
   const [screen, setScreen] = useState<Screen>(localStorage.getItem('careerforge-token') ? 'dashboard' : 'auth')
   const authenticated = Boolean(localStorage.getItem('careerforge-token'))
-  const administrator = hasAdministratorRole()
+  const roles = tokenRoles()
+  const administrator = roles.includes('Administrator')
+  const contentManager = administrator || roles.includes('ContentEditor')
   const [catalog, setCatalog] = useState<{ technologies: Technology[]; skills: Skill[]; specializations: Specialization[] }>({
     technologies: [], skills: [], specializations: [],
   })
@@ -369,7 +371,7 @@ function App() {
           {authenticated && <button aria-current={screen === 'dashboard' ? 'page' : undefined} className={screen === 'dashboard' ? 'nav-active' : ''} onClick={() => { setScreen('dashboard'); loadDashboard() }}>Rotam</button>}
           <button aria-current={screen === 'learning' || screen === 'lesson' ? 'page' : undefined} className={screen === 'learning' || screen === 'lesson' ? 'nav-active' : ''} onClick={() => openLearning()}>Rehber</button>
           {authenticated && <button aria-current={screen === 'review' ? 'page' : undefined} className={screen === 'review' ? 'nav-active' : ''} onClick={openReview}>Tekrar</button>}
-          {administrator && <button aria-current={screen === 'admin' ? 'page' : undefined} className={screen === 'admin' ? 'nav-active' : ''} onClick={() => setScreen('admin')}>İçerik</button>}
+          {contentManager && <button aria-current={screen === 'admin' ? 'page' : undefined} className={screen === 'admin' ? 'nav-active' : ''} onClick={() => setScreen('admin')}>İçerik</button>}
           {authenticated && <button onClick={() => startSession('interview')}>Mülakat</button>}
           {authenticated && <button onClick={logout}>Çıkış</button>}
           {!authenticated && screen !== 'auth' && <button onClick={() => setScreen('auth')}>Giriş yap</button>}
@@ -448,7 +450,7 @@ function App() {
             onPractice={() => startSession('interview')}
           />
         )}
-        {screen === 'admin' && administrator && <AdminContent request={api} onMessage={setMessage} />}
+        {screen === 'admin' && contentManager && <AdminContent request={api} onMessage={setMessage} canPublish={administrator} />}
       </main>
     </div>
   )

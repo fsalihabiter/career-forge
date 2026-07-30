@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Security.Claims;
 using CareerForge.Api.Content;
 using CareerForge.Api.Data;
 using CareerForge.Api.Models;
@@ -13,12 +14,13 @@ public static class AdminContentEndpoints
     public static void Map(RouteGroupBuilder api)
     {
         var admin = api.MapGroup("/admin/content")
-            .RequireAuthorization(AppPolicies.AdministratorAccess);
+            .RequireAuthorization(AppPolicies.ContentManagement);
 
         MapLearningContent<Lesson>(admin, "lessons", false);
         MapLearningContent<PatternGuide>(admin, "patterns", true);
         MapRubrics(admin);
         MapQuestions(admin);
+        MapWorkflow(admin);
     }
 
     private static void MapLearningContent<T>(RouteGroupBuilder admin, string route, bool isPattern)
@@ -39,6 +41,8 @@ public static class AdminContentEndpoints
 
         group.MapPost("/", async (LearningContentDefinition request, AppDbContext db, CancellationToken ct) =>
         {
+            if (request.Status != PublicationStatus.Draft)
+                return Validation("Yeni içerik taslak durumunda oluşturulmalıdır.");
             var error = await ValidateLearningContent(request, isPattern, db, ct);
             if (error is not null) return Validation(error);
             if (await db.Set<T>().AnyAsync(x => x.StableId == request.StableId && x.Version == request.Version, ct))
@@ -63,6 +67,8 @@ public static class AdminContentEndpoints
             var item = await db.Set<T>().Include(x => x.Sections)
                 .SingleOrDefaultAsync(x => x.StableId == stableId && x.Version == version, ct);
             if (item is null) return Results.NotFound();
+            if (request.Status != item.Status)
+                return Validation("Yayın durumu yalnızca durum geçişi eylemleriyle değiştirilebilir.");
             if (await db.Set<VersionedContent>().AnyAsync(
                     x => x.Id != item.Id && x.Slug == request.Slug && x.Version == request.Version, ct))
                 return Results.Conflict(new { detail = "Aynı slug ve sürüme sahip içerik zaten var." });
@@ -76,6 +82,8 @@ public static class AdminContentEndpoints
         {
             var item = await db.Set<T>().SingleOrDefaultAsync(x => x.StableId == stableId && x.Version == version, ct);
             if (item is null) return Results.NotFound();
+            if (item.Status is PublicationStatus.InReview or PublicationStatus.Published)
+                return Results.Conflict(new { detail = "İncelemedeki veya yayındaki içerik silinemez; önce arşivleyin." });
             db.Remove(item);
             await db.SaveChangesAsync(ct);
             return Results.NoContent();
@@ -97,6 +105,8 @@ public static class AdminContentEndpoints
         });
         group.MapPost("/", async (RubricDefinition request, AppDbContext db, CancellationToken ct) =>
         {
+            if (request.Status != PublicationStatus.Draft)
+                return Validation("Yeni rubric taslak durumunda oluşturulmalıdır.");
             var error = ValidateRubric(request);
             if (error is not null) return Validation(error);
             if (await db.Rubrics.AnyAsync(x => x.StableId == request.StableId && x.Version == request.Version, ct))
@@ -117,6 +127,8 @@ public static class AdminContentEndpoints
             var item = await db.Rubrics.Include(x => x.Dimensions)
                 .SingleOrDefaultAsync(x => x.StableId == stableId && x.Version == version, ct);
             if (item is null) return Results.NotFound();
+            if (request.Status != item.Status)
+                return Validation("Yayın durumu yalnızca durum geçişi eylemleriyle değiştirilebilir.");
             ApplyRubric(item, request);
             await db.SaveChangesAsync(ct);
             return Results.Ok(ToDefinition(item));
@@ -125,6 +137,8 @@ public static class AdminContentEndpoints
         {
             var item = await db.Rubrics.SingleOrDefaultAsync(x => x.StableId == stableId && x.Version == version, ct);
             if (item is null) return Results.NotFound();
+            if (item.Status is PublicationStatus.InReview or PublicationStatus.Published)
+                return Results.Conflict(new { detail = "İncelemedeki veya yayındaki rubric silinemez; önce arşivleyin." });
             if (await db.Questions.AnyAsync(x => x.RubricId == item.Id, ct))
                 return Results.Conflict(new { detail = "Soruların kullandığı rubric silinemez." });
             db.Rubrics.Remove(item);
@@ -148,6 +162,8 @@ public static class AdminContentEndpoints
         });
         group.MapPost("/", async (QuestionDefinition request, AppDbContext db, CancellationToken ct) =>
         {
+            if (request.Status != PublicationStatus.Draft)
+                return Validation("Yeni soru taslak durumunda oluşturulmalıdır.");
             var references = await ResolveQuestionReferences(request, db, ct);
             if (references.Error is not null) return Validation(references.Error);
             if (await db.Questions.AnyAsync(x => x.StableId == request.StableId && x.Version == request.Version, ct))
@@ -167,6 +183,10 @@ public static class AdminContentEndpoints
             if (references.Error is not null) return Validation(references.Error);
             var item = await db.Questions.SingleOrDefaultAsync(x => x.StableId == stableId && x.Version == version, ct);
             if (item is null) return Results.NotFound();
+            if (item.Status is PublicationStatus.InReview or PublicationStatus.Published)
+                return Results.Conflict(new { detail = "İncelemedeki veya yayındaki soru silinemez; önce arşivleyin." });
+            if (request.Status != item.Status)
+                return Validation("Yayın durumu yalnızca durum geçişi eylemleriyle değiştirilebilir.");
             ApplyQuestion(item, request, references);
             await db.SaveChangesAsync(ct);
             return Results.Ok(ToDefinition(item));
@@ -182,6 +202,117 @@ public static class AdminContentEndpoints
             await db.SaveChangesAsync(ct);
             return Results.NoContent();
         });
+    }
+
+    private static void MapWorkflow(RouteGroupBuilder admin)
+    {
+        admin.MapPost("/{kind}/{stableId}/{version:int}/transitions", async (
+            string kind,
+            string stableId,
+            int version,
+            ContentTransitionRequest request,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            CancellationToken ct) =>
+        {
+            var entity = await FindContent(kind, stableId, version, db, ct);
+            if (entity is null) return Results.NotFound();
+
+            var current = StatusOf(entity);
+            if (!AllowedTransition(current, request.TargetStatus))
+                return Results.Conflict(new
+                {
+                    detail = $"{current} durumundan {request.TargetStatus} durumuna geçilemez."
+                });
+            if ((request.TargetStatus is PublicationStatus.Published or PublicationStatus.Archived)
+                && !principal.IsInRole(AppRoles.Administrator))
+                return Results.Forbid();
+            if (request.TargetStatus == PublicationStatus.Published)
+            {
+                var publicationError = await ValidateForPublication(entity, db, ct);
+                if (publicationError is not null) return Validation(publicationError);
+            }
+
+            SetStatus(entity, request.TargetStatus);
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(new ContentTransitionResponse(
+                stableId, version, request.TargetStatus, PublishedAtOf(entity)));
+        });
+    }
+
+    private static async Task<object?> FindContent(
+        string kind, string stableId, int version, AppDbContext db, CancellationToken ct) => kind switch
+    {
+        "lessons" => await db.Lessons.SingleOrDefaultAsync(
+            x => x.StableId == stableId && x.Version == version, ct),
+        "patterns" => await db.PatternGuides.SingleOrDefaultAsync(
+            x => x.StableId == stableId && x.Version == version, ct),
+        "rubrics" => await db.Rubrics.SingleOrDefaultAsync(
+            x => x.StableId == stableId && x.Version == version, ct),
+        "questions" => await db.Questions.SingleOrDefaultAsync(
+            x => x.StableId == stableId && x.Version == version, ct),
+        _ => null
+    };
+
+    private static PublicationStatus StatusOf(object entity) => entity switch
+    {
+        VersionedContent content => content.Status,
+        Rubric rubric => rubric.Status,
+        Question question => question.Status,
+        _ => throw new ArgumentOutOfRangeException(nameof(entity))
+    };
+
+    private static DateTimeOffset? PublishedAtOf(object entity) => entity switch
+    {
+        VersionedContent content => content.PublishedAt,
+        Rubric rubric => rubric.PublishedAt,
+        Question question => question.PublishedAt,
+        _ => null
+    };
+
+    private static void SetStatus(object entity, PublicationStatus status)
+    {
+        var publishedAt = status == PublicationStatus.Published ? DateTimeOffset.UtcNow : (DateTimeOffset?)null;
+        switch (entity)
+        {
+            case VersionedContent content:
+                content.Status = status;
+                content.PublishedAt = publishedAt;
+                content.UpdatedAt = DateTimeOffset.UtcNow;
+                break;
+            case Rubric rubric:
+                rubric.Status = status;
+                rubric.PublishedAt = publishedAt;
+                break;
+            case Question question:
+                question.Status = status;
+                question.PublishedAt = publishedAt;
+                break;
+        }
+    }
+
+    private static bool AllowedTransition(PublicationStatus current, PublicationStatus target) =>
+        (current, target) switch
+        {
+            (PublicationStatus.Draft, PublicationStatus.InReview) => true,
+            (PublicationStatus.InReview, PublicationStatus.Draft) => true,
+            (PublicationStatus.InReview, PublicationStatus.Published) => true,
+            (PublicationStatus.Published, PublicationStatus.Archived) => true,
+            (PublicationStatus.Archived, PublicationStatus.Draft) => true,
+            _ => false
+        };
+
+    private static async Task<string?> ValidateForPublication(
+        object entity, AppDbContext db, CancellationToken ct)
+    {
+        if (entity is Question question)
+        {
+            if (question.RubricId is null
+                || !await db.Rubrics.AnyAsync(
+                    x => x.Id == question.RubricId && x.Status == PublicationStatus.Published, ct))
+                return "Soru yayınlanmadan önce bağlı rubric yayınlanmış olmalıdır.";
+        }
+        return null;
     }
 
     private static async Task<string?> ValidateLearningContent(
@@ -338,4 +469,8 @@ public static class AdminContentEndpoints
 
     private sealed record QuestionReferences(
         string? Error, Skill? Skill, Technology? Technology, Rubric? Rubric);
+
+    public sealed record ContentTransitionRequest(PublicationStatus TargetStatus);
+    public sealed record ContentTransitionResponse(
+        string StableId, int Version, PublicationStatus Status, DateTimeOffset? PublishedAt);
 }

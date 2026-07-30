@@ -102,24 +102,76 @@ public sealed class AdminContentTests(CareerForgeApiFactory factory)
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Editor_submits_content_and_only_administrator_can_publish_or_archive()
+    {
+        var suffix = Guid.NewGuid().ToString("N");
+        var stableId = $"workflow-{suffix}";
+        var lesson = Content(stableId, $"workflow-{suffix}", null);
+        using var editor = factory.CreateClient();
+        await AuthenticateRole(editor, AppRoles.ContentEditor);
+
+        Assert.Equal(HttpStatusCode.Created,
+            (await editor.PostAsJsonAsync("/api/admin/content/lessons/", lesson)).StatusCode);
+        var submit = await editor.PostAsJsonAsync(
+            $"/api/admin/content/lessons/{stableId}/1/transitions",
+            new { targetStatus = "inReview" });
+        Assert.Equal(HttpStatusCode.OK, submit.StatusCode);
+
+        var directStatusEdit = await editor.PutAsJsonAsync(
+            $"/api/admin/content/lessons/{stableId}/1",
+            lesson with { Status = PublicationStatus.Published });
+        Assert.Equal(HttpStatusCode.BadRequest, directStatusEdit.StatusCode);
+
+        var forbiddenPublish = await editor.PostAsJsonAsync(
+            $"/api/admin/content/lessons/{stableId}/1/transitions",
+            new { targetStatus = "published" });
+        Assert.Equal(HttpStatusCode.Forbidden, forbiddenPublish.StatusCode);
+
+        using var administrator = factory.CreateClient();
+        await AuthenticateRole(administrator, AppRoles.Administrator);
+        var publish = await administrator.PostAsJsonAsync(
+            $"/api/admin/content/lessons/{stableId}/1/transitions",
+            new { targetStatus = "published" });
+        Assert.Equal(HttpStatusCode.OK, publish.StatusCode);
+        Assert.NotNull((await publish.Content.ReadFromJsonAsync<TransitionResponse>(JsonOptions))?.PublishedAt);
+
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await administrator.PostAsJsonAsync(
+                $"/api/admin/content/lessons/{stableId}/1/transitions",
+                new { targetStatus = "draft" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,
+            (await administrator.PostAsJsonAsync(
+                $"/api/admin/content/lessons/{stableId}/1/transitions",
+                new { targetStatus = "archived" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await administrator.DeleteAsync($"/api/admin/content/lessons/{stableId}/1")).StatusCode);
+    }
+
     private static LearningContentDefinition Content(string stableId, string slug, string? category) => new(
         stableId, 1, slug, "İçerik", "Özet", "dotnet", ProficiencyLevel.Intermediate, 15,
         PublicationStatus.Draft, ["Öğren"], [], category,
         [new ContentSectionDefinition("intro", "Giriş", 1, "İçerik", null, null)]);
 
     private async Task AuthenticateAdministrator(HttpClient client)
+        => await AuthenticateRole(client, AppRoles.Administrator);
+
+    private async Task AuthenticateRole(HttpClient client, string role)
     {
-        var email = $"admin-{Guid.NewGuid():N}@careerforge.test";
+        var email = $"{role.ToLowerInvariant()}-{Guid.NewGuid():N}@careerforge.test";
         const string password = "IntegrationPass123";
         using (var scope = factory.Services.CreateScope())
         {
             var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
             var user = new AppUser { Id = Guid.NewGuid(), UserName = email, Email = email };
             Assert.True((await users.CreateAsync(user, password)).Succeeded);
-            Assert.True((await users.AddToRoleAsync(user, AppRoles.Administrator)).Succeeded);
+            Assert.True((await users.AddToRoleAsync(user, role)).Succeeded);
         }
         var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, password));
         var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
     }
+
+    private sealed record TransitionResponse(
+        string StableId, int Version, PublicationStatus Status, DateTimeOffset? PublishedAt);
 }

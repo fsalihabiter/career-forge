@@ -6,12 +6,14 @@ namespace CareerForge.Api;
 public static class AppRoles
 {
     public const string Student = "Student";
+    public const string ContentEditor = "ContentEditor";
     public const string Administrator = "Administrator";
 }
 
 public static class AppPolicies
 {
     public const string StudentAccess = "StudentAccess";
+    public const string ContentManagement = "ContentManagement";
     public const string AdministratorAccess = "AdministratorAccess";
 }
 
@@ -21,7 +23,7 @@ public static class RoleSeed
         RoleManager<IdentityRole<Guid>> roles,
         UserManager<Models.AppUser> users)
     {
-        foreach (var roleName in new[] { AppRoles.Student, AppRoles.Administrator })
+        foreach (var roleName in new[] { AppRoles.Student, AppRoles.ContentEditor, AppRoles.Administrator })
         {
             if (!await roles.RoleExistsAsync(roleName))
             {

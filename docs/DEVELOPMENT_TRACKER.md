@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-31
 - Aktif faz: Faz 4 — Yönetim ve içerik yaşam döngüsü
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-404 — Taslak–inceleme–yayın akışı`
-- Son tamamlanan iş: `CF-403 — Admin içerik arayüzü`
+- Sıradaki iş: `CF-405 — İçerik versiyonlama`
+- Son tamamlanan iş: `CF-404 — Taslak–inceleme–yayın akışı`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -22,7 +22,7 @@ işlenir.
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
 | 2. Öğrenme ve içerik MVP'si | 8 | 8 | Tamamlandı |
 | 3. İlerleme ve tekrar | 6 | 6 | Tamamlandı |
-| 4. Yönetim ve içerik yaşam döngüsü | 3 | 6 | Devam ediyor |
+| 4. Yönetim ve içerik yaşam döngüsü | 4 | 6 | Devam ediyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
 | 6. Gelişmiş deneyim | 0 | 6 | Bekliyor |
 
@@ -82,8 +82,8 @@ işlenir.
 | CF-401 | Tamamlandı | Rol ve policy tabanlı yetkilendirme | CF-103 | Öğrenci ve yönetici yetkileri API seviyesinde ayrılır |
 | CF-402 | Tamamlandı | İçerik yönetimi API'si | CF-401, CF-202 | İçerik CRUD ve doğrulama akışları hazırdır |
 | CF-403 | Tamamlandı | Admin içerik arayüzü | CF-402 | Ders, soru, rubric ve pattern yönetilir |
-| CF-404 | Sıradaki | Taslak–inceleme–yayın akışı | CF-403 | Yayın durumu ve yetki kontrolleri vardır |
-| CF-405 | Bekliyor | İçerik versiyonlama | CF-404 | Eski cevap doğru içerik/rubric sürümüyle eşleşir |
+| CF-404 | Tamamlandı | Taslak–inceleme–yayın akışı | CF-403 | Yayın durumu ve yetki kontrolleri vardır |
+| CF-405 | Sıradaki | İçerik versiyonlama | CF-404 | Eski cevap doğru içerik/rubric sürümüyle eşleşir |
 | CF-406 | Bekliyor | İçerik kalite kontrolleri | CF-405 | Şema, bağlantı ve zorunlu alan kontrolleri CI'da çalışır |
 
 ### Faz 5 — Üretim dayanıklılığı
@@ -122,6 +122,31 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
 5. Bu dosyada durum, tarih ve çalışma günlüğü güncellendi.
 
 ## Çalışma günlüğü
+
+### 2026-07-31 — CF-404 başlatıldı
+
+- İçerik editörü ile yönetici sorumluluklarını ayıran taslak, inceleme, yayın ve
+  arşiv durum geçişlerinin geliştirilmesine başlandı.
+
+### 2026-07-31 — CF-404 tamamlandı
+
+- İçerik editörü rolü ve editör/yönetici ortak içerik yönetimi policy'si eklendi;
+  öğrenci erişim sınırı korunurken yayın yetkisi yöneticide bırakıldı.
+- Taslak → inceleme → yayın → arşiv ana akışı ile incelemeden taslağa ve arşivden
+  yeni taslağa dönüşler sunucu tarafında açık bir durum matrisiyle sınırlandı.
+- Yeni kayıtların yalnızca taslak oluşturulması sağlandı ve CRUD gövdesiyle yayın
+  durumunu atlama girişimleri reddedildi.
+- İncelemedeki/yayındaki içeriklerin doğrudan silinmesi engellendi; yayınlama
+  öncesinde sorunun bağlı rubric'inin yayında olması zorunlu kılındı.
+- Admin çalışma alanına mevcut durumu ve role göre izin verilen incelemeye gönder,
+  taslağa döndür, yayınla ve arşivle eylemleri eklendi.
+- Editörün incelemeye gönderebilmesi fakat yayınlayamaması, yöneticinin
+  yayınlama/arşivleme yetkisi, geçersiz geçiş ve doğrudan durum değiştirme
+  integration testiyle doğrulandı.
+- Backend testleri 33/33 ve frontend testleri 8/8 geçti; Release çözüm build'i,
+  frontend production build'i ve lint uyarısız tamamlandı.
+- Mevcut durum ve rol tabloları yeterli olduğu için migration gerekmedi;
+  geliştirme sırası CF-405 içerik versiyonlamaya taşındı.
 
 ### 2026-07-31 — CF-403 başlatıldı
 

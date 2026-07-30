@@ -18,9 +18,10 @@ const templates: Record<ContentKind, object> = {
   questions: { stableId: 'new-question', version: 1, prompt: 'Yeni soru', type: 'open-ended', level: 'intermediate', skillSlug: 'api-design', technologySlug: null, rubricStableId: 'default-technical-answer', rubricVersion: 1, modelAnswer: '', expectedSignals: [''], redFlags: [''], status: 'draft' },
 }
 
-export function AdminContent({ request, onMessage }: {
+export function AdminContent({ request, onMessage, canPublish }: {
   request: <T>(path: string, options?: RequestInit) => Promise<T>
   onMessage: (message: string) => void
+  canPublish: boolean
 }) {
   const [kind, setKind] = useState<ContentKind>('lessons')
   const [items, setItems] = useState<ContentItem[]>([])
@@ -91,6 +92,21 @@ export function AdminContent({ request, onMessage }: {
     } finally { setBusy(false) }
   }
 
+  const transition = async (targetStatus: string, label: string) => {
+    if (!selected) return
+    setBusy(true)
+    try {
+      await request(`/admin/content/${kind}/${selected.stableId}/${selected.version}/transitions`, {
+        method: 'POST', body: JSON.stringify({ targetStatus }),
+      })
+      onMessage(`${selected.title ?? selected.prompt ?? selected.stableId}: ${label}.`)
+      await load()
+      await selectItem({ ...selected, status: targetStatus })
+    } catch (error) {
+      onMessage(error instanceof Error ? error.message : 'Durum değiştirilemedi.')
+    } finally { setBusy(false) }
+  }
+
   return (
     <section className="admin-studio">
       <header className="admin-hero">
@@ -126,6 +142,17 @@ export function AdminContent({ request, onMessage }: {
                 <button className="primary" disabled={busy}>Değişiklikleri kaydet</button>
               </div>
             </header>
+            {!isNew && selected && <div className="workflow-bar" aria-label="Yayın akışı">
+              <div><small>MEVCUT DURUM</small><b>{selected.status}</b></div>
+              <span aria-hidden="true">→</span>
+              <div className="workflow-actions">
+                {selected.status === 'draft' && <button type="button" onClick={() => transition('inReview', 'İncelemeye gönderildi')}>İncelemeye gönder</button>}
+                {selected.status === 'inReview' && <button type="button" onClick={() => transition('draft', 'Taslağa döndürüldü')}>Taslağa döndür</button>}
+                {selected.status === 'inReview' && canPublish && <button type="button" className="publish" onClick={() => transition('published', 'Yayınlandı')}>Yayınla</button>}
+                {selected.status === 'published' && canPublish && <button type="button" onClick={() => transition('archived', 'Arşivlendi')}>Arşivle</button>}
+                {selected.status === 'archived' && <button type="button" onClick={() => transition('draft', 'Yeni taslak açıldı')}>Taslağa geri al</button>}
+              </div>
+            </div>}
             <label className="json-field">İçerik sözleşmesi<textarea value={draft} onChange={event => setDraft(event.target.value)} rows={26} spellCheck={false} aria-describedby="json-help" /></label>
             <p id="json-help" className="admin-help">Alan adlarını koruyun. Bölüm ve rubric sıraları benzersiz, rubric ağırlıkları toplamı 100 olmalıdır.</p>
           </form> : <div className="admin-editor-empty"><span>{meta.code}</span><h2>Bir kayıt seçin</h2><p>İçeriği incelemek için soldaki dizinden seçim yapın veya yeni bir {meta.singular} başlatın.</p></div>}

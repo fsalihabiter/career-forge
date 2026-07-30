@@ -467,6 +467,9 @@ describe('App', () => {
       if (url.endsWith('/admin/content/lessons/') && init?.method === 'POST') {
         return response(JSON.parse(String(init.body)), 201)
       }
+      if (url.endsWith('/admin/content/lessons/lesson-one/1/transitions') && init?.method === 'POST') {
+        return response({ stableId: 'lesson-one', version: 1, status: 'inReview' })
+      }
       if (url.endsWith('/admin/content/lessons/lesson-one/1')) return response(lesson)
       if (url.includes('/admin/content/')) return response(url.endsWith('/lessons/') ? [lesson] : [])
       return response({}, 404)
@@ -479,7 +482,12 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { name: /Bilgiyi yayına hazırla/i })).toBeInTheDocument()
     expect(screen.getAllByRole('tab')).toHaveLength(4)
-    expect(await screen.findByText('İlk ders')).toBeInTheDocument()
+    await user.click(await screen.findByText('İlk ders'))
+    await user.click(await screen.findByRole('button', { name: 'İncelemeye gönder' }))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/lesson-one/1/transitions'),
+      expect.objectContaining({ method: 'POST' }),
+    ))
 
     await user.click(screen.getByRole('button', { name: 'Yeni ders' }))
     const editor = screen.getByRole('textbox', { name: 'İçerik sözleşmesi' })

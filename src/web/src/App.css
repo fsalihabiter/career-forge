@@ -372,6 +372,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue); backgroun
 .admin-editor h2 { max-width: 360px; overflow: hidden; margin: 6px 0 0; font-size: 17px; text-overflow: ellipsis; white-space: nowrap; }
 .admin-actions { display: flex; gap: 9px; align-items: center; }
 .admin-delete { border: 0; border-bottom: 1px solid #a54b41; padding: 8px 2px; color: #963e33; background: transparent; font-size: 10px; font-weight: 800; cursor: pointer; }
+.workflow-bar { display: grid; grid-template-columns: auto 20px 1fr; gap: 14px; align-items: center; padding: 14px 20px; color: white; background: var(--ink); border-bottom: 1px solid #354154; }
+.workflow-bar > div:first-child { display: grid; gap: 3px; }
+.workflow-bar small { color: #96a5b8; font: 7px 'DM Mono'; letter-spacing: .8px; }
+.workflow-bar b { color: var(--cyan); font: 10px 'DM Mono'; text-transform: uppercase; }
+.workflow-bar > span { color: #69788c; }
+.workflow-actions { display: flex; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
+.workflow-actions button { border: 1px solid #627087; padding: 8px 10px; color: #dce5ef; background: transparent; font-size: 9px; font-weight: 800; cursor: pointer; }
+.workflow-actions button:hover { border-color: var(--cyan); color: var(--cyan); }
+.workflow-actions .publish { border-color: var(--cyan); color: var(--ink); background: var(--cyan); }
 .json-field { padding: 20px 20px 0; color: var(--muted); font: 9px 'DM Mono'; letter-spacing: .8px; text-transform: uppercase; }
 .json-field textarea { margin-top: 3px; min-height: 480px; background: #111b29; color: #dce7f2; border: 0; border-top: 3px solid var(--cyan); border-radius: 0; font: 11px/1.65 'DM Mono'; tab-size: 2; text-transform: none; }
 .admin-help { margin: 0; padding: 13px 20px 20px; color: var(--muted); font-size: 9px; line-height: 1.6; }
@@ -432,6 +441,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue); backgroun
   .admin-index-head .primary { width: 100%; }
   .admin-editor form > header { align-items: flex-start; flex-direction: column; }
   .admin-actions { width: 100%; justify-content: space-between; }
+  .workflow-bar { grid-template-columns: 1fr auto; }
+  .workflow-bar > span { display: none; }
+  .workflow-actions { justify-content: flex-start; grid-column: 1/-1; }
   .evidence-strip { grid-template-columns: 1fr; }
   .evidence-strip article:first-child { text-align: left; }
   .review-row { grid-template-columns: 28px 1fr; }
