@@ -107,6 +107,22 @@ export function AdminContent({ request, onMessage, canPublish }: {
     } finally { setBusy(false) }
   }
 
+  const createVersion = async () => {
+    if (!selected) return
+    setBusy(true)
+    try {
+      const created = await request<{ version: number }>(
+        `/admin/content/${kind}/${selected.stableId}/${selected.version}/versions`,
+        { method: 'POST' },
+      )
+      onMessage(`${selected.stableId} v${created.version} taslağı oluşturuldu.`)
+      await load()
+      await selectItem({ ...selected, version: created.version, status: 'draft' })
+    } catch (error) {
+      onMessage(error instanceof Error ? error.message : 'Yeni sürüm oluşturulamadı.')
+    } finally { setBusy(false) }
+  }
+
   return (
     <section className="admin-studio">
       <header className="admin-hero">
@@ -138,6 +154,8 @@ export function AdminContent({ request, onMessage, canPublish }: {
             <header>
               <div><span>{isNew ? 'YENİ KAYIT' : 'SÜRÜM DETAYI'}</span><h2>{isNew ? `Yeni ${meta.singular}` : selected?.title ?? selected?.prompt}</h2></div>
               <div className="admin-actions">
+                {!isNew && selected && (selected.status === 'published' || selected.status === 'archived')
+                  && <button type="button" className="version-button" onClick={createVersion}>Yeni sürüm oluştur</button>}
                 {!isNew && <button type="button" className="admin-delete" onClick={remove}>Sil</button>}
                 <button className="primary" disabled={busy}>Değişiklikleri kaydet</button>
               </div>

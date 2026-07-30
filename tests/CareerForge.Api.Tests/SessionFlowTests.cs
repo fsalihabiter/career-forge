@@ -185,6 +185,8 @@ public sealed class SessionFlowTests(CareerForgeApiFactory factory)
 
     private sealed record SessionQuestion(
         Guid Id,
+        string QuestionStableId,
+        int QuestionVersion,
         int Order,
         string Prompt,
         string Type,

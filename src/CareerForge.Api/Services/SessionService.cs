@@ -167,6 +167,8 @@ public sealed class SessionService(AppDbContext db)
         questions = session.Questions.OrderBy(x => x.Order).Select(x => new
         {
             x.Question.Id,
+            questionStableId = x.Question.StableId,
+            questionVersion = x.Question.Version,
             x.Order,
             x.Question.Prompt,
             x.Question.Type,

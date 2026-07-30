@@ -121,7 +121,7 @@ public sealed class AdminContentTests(CareerForgeApiFactory factory)
         var directStatusEdit = await editor.PutAsJsonAsync(
             $"/api/admin/content/lessons/{stableId}/1",
             lesson with { Status = PublicationStatus.Published });
-        Assert.Equal(HttpStatusCode.BadRequest, directStatusEdit.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, directStatusEdit.StatusCode);
 
         var forbiddenPublish = await editor.PostAsJsonAsync(
             $"/api/admin/content/lessons/{stableId}/1/transitions",
@@ -136,6 +136,20 @@ public sealed class AdminContentTests(CareerForgeApiFactory factory)
         Assert.Equal(HttpStatusCode.OK, publish.StatusCode);
         Assert.NotNull((await publish.Content.ReadFromJsonAsync<TransitionResponse>(JsonOptions))?.PublishedAt);
 
+        var immutableUpdate = await administrator.PutAsJsonAsync(
+            $"/api/admin/content/lessons/{stableId}/1",
+            lesson with { Status = PublicationStatus.Published, Title = "Yerinde değişiklik" });
+        Assert.Equal(HttpStatusCode.Conflict, immutableUpdate.StatusCode);
+        var versionResponse = await administrator.PostAsync(
+            $"/api/admin/content/lessons/{stableId}/1/versions", null);
+        var newVersion = await versionResponse.Content.ReadFromJsonAsync<VersionResponse>(JsonOptions);
+        Assert.Equal(HttpStatusCode.Created, versionResponse.StatusCode);
+        Assert.Equal(2, newVersion?.Version);
+        Assert.Equal(PublicationStatus.Draft, newVersion?.Status);
+        var clonedLesson = await administrator.GetFromJsonAsync<LearningContentDefinition>(
+            $"/api/admin/content/lessons/{stableId}/2", JsonOptions);
+        Assert.Equal(lesson.Title, clonedLesson?.Title);
+
         Assert.Equal(HttpStatusCode.Conflict,
             (await administrator.PostAsJsonAsync(
                 $"/api/admin/content/lessons/{stableId}/1/transitions",
@@ -145,7 +159,61 @@ public sealed class AdminContentTests(CareerForgeApiFactory factory)
                 $"/api/admin/content/lessons/{stableId}/1/transitions",
                 new { targetStatus = "archived" })).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent,
+            (await administrator.DeleteAsync($"/api/admin/content/lessons/{stableId}/2")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent,
             (await administrator.DeleteAsync($"/api/admin/content/lessons/{stableId}/1")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Existing_session_keeps_exact_question_version_when_a_new_version_is_created()
+    {
+        using var student = factory.CreateClient();
+        var registration = await student.PostAsJsonAsync(
+            "/api/auth/register",
+            new RegisterRequest($"version-{Guid.NewGuid():N}@careerforge.test", "IntegrationPass123", "Version User"));
+        var auth = await registration.Content.ReadFromJsonAsync<AuthResponse>();
+        student.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+        var started = await student.PostAsJsonAsync("/api/diagnostic-sessions/", new StartSessionRequest(3));
+        var sessionId = (await started.Content.ReadFromJsonAsync<SessionCreated>())!.Id;
+        var before = await student.GetFromJsonAsync<SessionSnapshot>($"/api/diagnostic-sessions/{sessionId}");
+        var original = before!.Questions[0];
+        Assert.Equal(1, original.QuestionVersion);
+
+        using var administrator = factory.CreateClient();
+        await AuthenticateRole(administrator, AppRoles.Administrator);
+        var createVersion = await administrator.PostAsync(
+            $"/api/admin/content/questions/{original.QuestionStableId}/1/versions", null);
+        Assert.Equal(HttpStatusCode.Created, createVersion.StatusCode);
+
+        var after = await student.GetFromJsonAsync<SessionSnapshot>($"/api/diagnostic-sessions/{sessionId}");
+        var preserved = Assert.Single(after!.Questions, x => x.Id == original.Id);
+        Assert.Equal(original.QuestionStableId, preserved.QuestionStableId);
+        Assert.Equal(1, preserved.QuestionVersion);
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await administrator.DeleteAsync(
+                $"/api/admin/content/questions/{original.QuestionStableId}/2")).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("lessons", "middleware-order")]
+    [InlineData("patterns", "strategy-pattern")]
+    [InlineData("rubrics", "default-technical-answer")]
+    [InlineData("questions", "api-idempotency")]
+    public async Task Every_content_type_can_clone_a_published_version_as_a_draft(
+        string kind, string stableId)
+    {
+        using var administrator = factory.CreateClient();
+        await AuthenticateRole(administrator, AppRoles.Administrator);
+
+        var response = await administrator.PostAsync(
+            $"/api/admin/content/{kind}/{stableId}/1/versions", null);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<VersionResponse>(JsonOptions);
+        Assert.Equal(2, created?.Version);
+        Assert.Equal(PublicationStatus.Draft, created?.Status);
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await administrator.DeleteAsync($"/api/admin/content/{kind}/{stableId}/2")).StatusCode);
     }
 
     private static LearningContentDefinition Content(string stableId, string slug, string? category) => new(
@@ -174,4 +242,10 @@ public sealed class AdminContentTests(CareerForgeApiFactory factory)
 
     private sealed record TransitionResponse(
         string StableId, int Version, PublicationStatus Status, DateTimeOffset? PublishedAt);
+    private sealed record VersionResponse(
+        string Kind, string StableId, int SourceVersion, int Version, PublicationStatus Status);
+    private sealed record SessionCreated(Guid Id);
+    private sealed record SessionSnapshot(Guid Id, SessionSnapshotQuestion[] Questions);
+    private sealed record SessionSnapshotQuestion(
+        Guid Id, string QuestionStableId, int QuestionVersion);
 }

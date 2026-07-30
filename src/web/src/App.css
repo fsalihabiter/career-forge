@@ -372,6 +372,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue); backgroun
 .admin-editor h2 { max-width: 360px; overflow: hidden; margin: 6px 0 0; font-size: 17px; text-overflow: ellipsis; white-space: nowrap; }
 .admin-actions { display: flex; gap: 9px; align-items: center; }
 .admin-delete { border: 0; border-bottom: 1px solid #a54b41; padding: 8px 2px; color: #963e33; background: transparent; font-size: 10px; font-weight: 800; cursor: pointer; }
+.version-button { border: 0; border-bottom: 1px solid var(--blue); padding: 8px 2px; color: var(--blue); background: transparent; font-size: 10px; font-weight: 800; cursor: pointer; }
 .workflow-bar { display: grid; grid-template-columns: auto 20px 1fr; gap: 14px; align-items: center; padding: 14px 20px; color: white; background: var(--ink); border-bottom: 1px solid #354154; }
 .workflow-bar > div:first-child { display: grid; gap: 3px; }
 .workflow-bar small { color: #96a5b8; font: 7px 'DM Mono'; letter-spacing: .8px; }

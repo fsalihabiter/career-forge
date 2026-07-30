@@ -9,8 +9,8 @@ işlenir.
 - Son güncelleme: 2026-07-31
 - Aktif faz: Faz 4 — Yönetim ve içerik yaşam döngüsü
 - Devam eden iş: Yok
-- Sıradaki iş: `CF-405 — İçerik versiyonlama`
-- Son tamamlanan iş: `CF-404 — Taslak–inceleme–yayın akışı`
+- Sıradaki iş: `CF-406 — İçerik kalite kontrolleri`
+- Son tamamlanan iş: `CF-405 — İçerik versiyonlama`
 - Genel hedef: Kayıt, hazırlık profili, tanılama, mülakat ve sonuç akışını
   güvenilir bir MVP dikey dilimi hâline getirmek.
 
@@ -22,7 +22,7 @@ işlenir.
 | 1. Dikey dilimi güvenceye alma | 7 | 7 | Tamamlandı |
 | 2. Öğrenme ve içerik MVP'si | 8 | 8 | Tamamlandı |
 | 3. İlerleme ve tekrar | 6 | 6 | Tamamlandı |
-| 4. Yönetim ve içerik yaşam döngüsü | 4 | 6 | Devam ediyor |
+| 4. Yönetim ve içerik yaşam döngüsü | 5 | 6 | Devam ediyor |
 | 5. Üretim dayanıklılığı | 0 | 8 | Bekliyor |
 | 6. Gelişmiş deneyim | 0 | 6 | Bekliyor |
 
@@ -83,8 +83,8 @@ işlenir.
 | CF-402 | Tamamlandı | İçerik yönetimi API'si | CF-401, CF-202 | İçerik CRUD ve doğrulama akışları hazırdır |
 | CF-403 | Tamamlandı | Admin içerik arayüzü | CF-402 | Ders, soru, rubric ve pattern yönetilir |
 | CF-404 | Tamamlandı | Taslak–inceleme–yayın akışı | CF-403 | Yayın durumu ve yetki kontrolleri vardır |
-| CF-405 | Sıradaki | İçerik versiyonlama | CF-404 | Eski cevap doğru içerik/rubric sürümüyle eşleşir |
-| CF-406 | Bekliyor | İçerik kalite kontrolleri | CF-405 | Şema, bağlantı ve zorunlu alan kontrolleri CI'da çalışır |
+| CF-405 | Tamamlandı | İçerik versiyonlama | CF-404 | Eski cevap doğru içerik/rubric sürümüyle eşleşir |
+| CF-406 | Sıradaki | İçerik kalite kontrolleri | CF-405 | Şema, bağlantı ve zorunlu alan kontrolleri CI'da çalışır |
 
 ### Faz 5 — Üretim dayanıklılığı
 
@@ -122,6 +122,33 @@ Bir iş ancak aşağıdakilerin tamamı sağlandığında `Tamamlandı` olur:
 5. Bu dosyada durum, tarih ve çalışma günlüğü güncellendi.
 
 ## Çalışma günlüğü
+
+### 2026-07-31 — CF-405 başlatıldı
+
+- Yayınlanmış içeriği değişmez tutan yeni sürüm üretimi ile eski oturumların
+  doğru soru ve rubric sürümüne bağlı kalmasını güvenceye alma çalışmasına başlandı.
+
+### 2026-07-31 — CF-405 tamamlandı
+
+- Yayınlanmış, incelemedeki ve arşivlenmiş kayıtların CRUD ile yerinde
+  değiştirilmesi engellendi; yalnızca taslak sürümler düzenlenebilir hâle getirildi.
+- Yayınlanmış veya arşivlenmiş ders, pattern, rubric ve sorudan sıradaki sürüm
+  numarasıyla derin kopya taslak oluşturan ortak API akışı eklendi.
+- Aynı stable ID için açık taslak/inceleme sürümü varken ikinci bir çalışma
+  sürümü açılması engellenerek editoryal çakışma önlendi.
+- Ders/pattern bölümleri, rubric boyutları ve soru katalog/rubric referansları yeni
+  sürüme kopyalanırken kaynak sürüm ve yayın zamanı değişmeden korunuyor.
+- Oturum detayları soru stable ID ve sürümünü açıkça döndürüyor; rubric stable ID
+  ve sürümü mevcut değerlendirme snapshot'ında korunmaya devam ediyor.
+- Dört içerik türünde v1 → v2 taslak kopyalama, yayınlanmış sürüm değişmezliği ve
+  yeni soru sürümünden sonra mevcut oturumun v1'e bağlı kalması integration
+  testleriyle doğrulandı.
+- Admin arayüzüne yayınlanmış/arşivlenmiş kayıtlar için yeni sürüm oluşturma eylemi
+  eklendi.
+- Backend testleri 38/38 ve frontend testleri 8/8 geçti; Release çözüm build'i,
+  frontend production build'i ve lint uyarısız tamamlandı.
+- Mevcut stable ID + version şeması yeterli olduğu için migration gerekmedi;
+  geliştirme sırası CF-406 içerik kalite kontrollerine taşındı.
 
 ### 2026-07-31 — CF-404 başlatıldı
 

@@ -21,6 +21,7 @@ public static class AdminContentEndpoints
         MapRubrics(admin);
         MapQuestions(admin);
         MapWorkflow(admin);
+        MapVersioning(admin);
     }
 
     private static void MapLearningContent<T>(RouteGroupBuilder admin, string route, bool isPattern)
@@ -67,6 +68,8 @@ public static class AdminContentEndpoints
             var item = await db.Set<T>().Include(x => x.Sections)
                 .SingleOrDefaultAsync(x => x.StableId == stableId && x.Version == version, ct);
             if (item is null) return Results.NotFound();
+            if (item.Status != PublicationStatus.Draft)
+                return Results.Conflict(new { detail = "Yalnızca taslak içerik düzenlenebilir; yeni sürüm oluşturun." });
             if (request.Status != item.Status)
                 return Validation("Yayın durumu yalnızca durum geçişi eylemleriyle değiştirilebilir.");
             if (await db.Set<VersionedContent>().AnyAsync(
@@ -127,6 +130,8 @@ public static class AdminContentEndpoints
             var item = await db.Rubrics.Include(x => x.Dimensions)
                 .SingleOrDefaultAsync(x => x.StableId == stableId && x.Version == version, ct);
             if (item is null) return Results.NotFound();
+            if (item.Status != PublicationStatus.Draft)
+                return Results.Conflict(new { detail = "Yalnızca taslak rubric düzenlenebilir; yeni sürüm oluşturun." });
             if (request.Status != item.Status)
                 return Validation("Yayın durumu yalnızca durum geçişi eylemleriyle değiştirilebilir.");
             ApplyRubric(item, request);
@@ -183,6 +188,8 @@ public static class AdminContentEndpoints
             if (references.Error is not null) return Validation(references.Error);
             var item = await db.Questions.SingleOrDefaultAsync(x => x.StableId == stableId && x.Version == version, ct);
             if (item is null) return Results.NotFound();
+            if (item.Status != PublicationStatus.Draft)
+                return Results.Conflict(new { detail = "Yalnızca taslak soru düzenlenebilir; yeni sürüm oluşturun." });
             if (item.Status is PublicationStatus.InReview or PublicationStatus.Published)
                 return Results.Conflict(new { detail = "İncelemedeki veya yayındaki soru silinemez; önce arşivleyin." });
             if (request.Status != item.Status)
@@ -238,6 +245,113 @@ public static class AdminContentEndpoints
             return Results.Ok(new ContentTransitionResponse(
                 stableId, version, request.TargetStatus, PublishedAtOf(entity)));
         });
+    }
+
+    private static void MapVersioning(RouteGroupBuilder admin)
+    {
+        admin.MapPost("/{kind}/{stableId}/{version:int}/versions", async (
+            string kind, string stableId, int version, AppDbContext db, CancellationToken ct) =>
+        {
+            var source = await FindVersionSource(kind, stableId, version, db, ct);
+            if (source is null) return Results.NotFound();
+            if (StatusOf(source) is not (PublicationStatus.Published or PublicationStatus.Archived))
+                return Results.Conflict(new { detail = "Yeni sürüm yalnızca yayınlanmış veya arşivlenmiş içerikten üretilebilir." });
+            if (await HasOpenVersion(kind, stableId, db, ct))
+                return Results.Conflict(new { detail = "Bu içerik için zaten açık bir taslak veya inceleme sürümü var." });
+
+            var nextVersion = await NextVersion(kind, stableId, db, ct);
+            var clone = CloneVersion(source, nextVersion);
+            db.Add(clone);
+            await db.SaveChangesAsync(ct);
+            return Results.Created(
+                $"/api/admin/content/{kind}/{stableId}/{nextVersion}",
+                new ContentVersionResponse(kind, stableId, version, nextVersion, PublicationStatus.Draft));
+        });
+    }
+
+    private static async Task<object?> FindVersionSource(
+        string kind, string stableId, int version, AppDbContext db, CancellationToken ct) => kind switch
+    {
+        "lessons" => await db.Lessons.AsNoTracking().Include(x => x.Sections)
+            .SingleOrDefaultAsync(x => x.StableId == stableId && x.Version == version, ct),
+        "patterns" => await db.PatternGuides.AsNoTracking().Include(x => x.Sections)
+            .SingleOrDefaultAsync(x => x.StableId == stableId && x.Version == version, ct),
+        "rubrics" => await db.Rubrics.AsNoTracking().Include(x => x.Dimensions)
+            .SingleOrDefaultAsync(x => x.StableId == stableId && x.Version == version, ct),
+        "questions" => await db.Questions.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.StableId == stableId && x.Version == version, ct),
+        _ => null
+    };
+
+    private static async Task<bool> HasOpenVersion(
+        string kind, string stableId, AppDbContext db, CancellationToken ct) => kind switch
+    {
+        "lessons" => await db.Lessons.AnyAsync(x => x.StableId == stableId
+            && (x.Status == PublicationStatus.Draft || x.Status == PublicationStatus.InReview), ct),
+        "patterns" => await db.PatternGuides.AnyAsync(x => x.StableId == stableId
+            && (x.Status == PublicationStatus.Draft || x.Status == PublicationStatus.InReview), ct),
+        "rubrics" => await db.Rubrics.AnyAsync(x => x.StableId == stableId
+            && (x.Status == PublicationStatus.Draft || x.Status == PublicationStatus.InReview), ct),
+        "questions" => await db.Questions.AnyAsync(x => x.StableId == stableId
+            && (x.Status == PublicationStatus.Draft || x.Status == PublicationStatus.InReview), ct),
+        _ => false
+    };
+
+    private static async Task<int> NextVersion(
+        string kind, string stableId, AppDbContext db, CancellationToken ct) => kind switch
+    {
+        "lessons" => await db.Lessons.Where(x => x.StableId == stableId).MaxAsync(x => x.Version, ct) + 1,
+        "patterns" => await db.PatternGuides.Where(x => x.StableId == stableId).MaxAsync(x => x.Version, ct) + 1,
+        "rubrics" => await db.Rubrics.Where(x => x.StableId == stableId).MaxAsync(x => x.Version, ct) + 1,
+        "questions" => await db.Questions.Where(x => x.StableId == stableId).MaxAsync(x => x.Version, ct) + 1,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind))
+    };
+
+    private static object CloneVersion(object source, int version) => source switch
+    {
+        Lesson lesson => CloneLearningContent<Lesson>(lesson, version),
+        PatternGuide pattern => CloneLearningContent<PatternGuide>(pattern, version),
+        Rubric rubric => new Rubric
+        {
+            Id = Guid.NewGuid(), StableId = rubric.StableId, Version = version,
+            Title = rubric.Title, Description = rubric.Description, Status = PublicationStatus.Draft,
+            Dimensions = rubric.Dimensions.Select(x => new RubricDimension
+            {
+                Id = Guid.NewGuid(), Key = x.Key, Label = x.Label, Description = x.Description,
+                Weight = x.Weight, Order = x.Order
+            }).ToList()
+        },
+        Question question => new Question
+        {
+            Id = Guid.NewGuid(), StableId = question.StableId, Version = version,
+            Prompt = question.Prompt, Type = question.Type, Level = question.Level,
+            ModelAnswer = question.ModelAnswer, ExpectedSignalsJson = question.ExpectedSignalsJson,
+            RedFlagsJson = question.RedFlagsJson, RubricJson = question.RubricJson,
+            Status = PublicationStatus.Draft, RubricId = question.RubricId,
+            SkillId = question.SkillId, TechnologyId = question.TechnologyId
+        },
+        _ => throw new ArgumentOutOfRangeException(nameof(source))
+    };
+
+    private static T CloneLearningContent<T>(VersionedContent source, int version)
+        where T : VersionedContent, new()
+    {
+        var clone = new T
+        {
+            Id = Guid.NewGuid(), StableId = source.StableId, Version = version, Slug = source.Slug,
+            Title = source.Title, Summary = source.Summary, TechnologyId = source.TechnologyId,
+            Level = source.Level, EstimatedMinutes = source.EstimatedMinutes, Status = PublicationStatus.Draft,
+            ObjectivesJson = source.ObjectivesJson, PrerequisitesJson = source.PrerequisitesJson
+        };
+        if (clone is PatternGuide clonePattern && source is PatternGuide sourcePattern)
+            clonePattern.Category = sourcePattern.Category;
+        foreach (var section in source.Sections)
+            clone.Sections.Add(new ContentSection
+            {
+                Id = Guid.NewGuid(), Key = section.Key, Title = section.Title, Order = section.Order,
+                BodyMarkdown = section.BodyMarkdown, CodeLanguage = section.CodeLanguage, CodeSample = section.CodeSample
+            });
+        return clone;
     }
 
     private static async Task<object?> FindContent(
@@ -473,4 +587,6 @@ public static class AdminContentEndpoints
     public sealed record ContentTransitionRequest(PublicationStatus TargetStatus);
     public sealed record ContentTransitionResponse(
         string StableId, int Version, PublicationStatus Status, DateTimeOffset? PublishedAt);
+    public sealed record ContentVersionResponse(
+        string Kind, string StableId, int SourceVersion, int Version, PublicationStatus Status);
 }
